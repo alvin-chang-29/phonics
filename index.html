@@ -10,12 +10,11 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         .card { transition: all 0.2s ease; border: 2px solid transparent; }
-        .card:active { transform: scale(0.98); }
-        .unit-btn { transition: all 0.3s; flex-shrink: 0; }
         .active-unit { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; transform: scale(1.1); }
         .score-anim { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        /* 隱藏捲軸但保持滾動功能 */
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #f59e0b; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -31,50 +30,29 @@
         </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar" id="app-content">
-        </main>
+    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar" id="app-content"></main>
 
     <div class="bg-white border-t border-gray-200">
-        <div class="flex overflow-x-auto py-4 px-4 space-x-4 no-scrollbar items-center" id="nav-bar">
-            </div>
-        <div class="text-center pb-8 text-[10px] text-gray-400 font-medium">Add to Home Screen for Full Experience</div>
+        <div class="flex overflow-x-auto py-4 px-4 space-x-4 no-scrollbar items-center" id="nav-bar"></div>
+        <div class="text-center pb-8 text-[10px] text-gray-400 font-medium tracking-widest">PWA PHONICS LEARNING SYSTEM</div>
     </div>
 
     <script>
         const wordData = {
             shortA: { label: 'Short A', icon: '🍎', data: [
-                { word: 'Cat', sound: 'at' }, { word: 'Bag', sound: 'ag' }, { word: 'Cap', sound: 'ap' },
-                { word: 'Sad', sound: 'ad' }, { word: 'Van', sound: 'an' }, { word: 'Bat', sound: 'at' },
-                { word: 'Rat', sound: 'at' }, { word: 'Pan', sound: 'an' }, { word: 'Can', sound: 'an' }
+                { word: 'Cat', sound: 'at', longVersion: 'kate' }, { word: 'Bag', sound: 'ag', longVersion: 'baig' },
+                { word: 'Cap', sound: 'ap', longVersion: 'cape' }, { word: 'Sad', sound: 'ad', longVersion: 'said' },
+                { word: 'Van', sound: 'an', longVersion: 'vain' }, { word: 'Bat', sound: 'at', longVersion: 'bait' },
+                { word: 'Rat', sound: 'at', longVersion: 'rate' }, { word: 'Pan', sound: 'an', longVersion: 'pain' },
+                { word: 'Can', sound: 'an', longVersion: 'cane' }
             ]},
             shortE: { label: 'Short E', icon: '🥚', data: [
-                { word: 'Bed', sound: 'ed' }, { word: 'Jet', sound: 'et' }, { word: 'Pen', sound: 'en' },
-                { word: 'Red', sound: 'ed' }, { word: 'Egg', sound: 'eg' }, { word: 'Leg', sound: 'eg' },
-                { word: 'Net', sound: 'et' }, { word: 'Wet', sound: 'et' }, { word: 'Web', sound: 'eb' }
+                { word: 'Bed', sound: 'ed', longVersion: 'bead' }, { word: 'Jet', sound: 'et', longVersion: 'jeet' },
+                { word: 'Red', sound: 'ed', longVersion: 'read' }, { word: 'Net', sound: 'et', longVersion: 'neat' }
             ]},
             shortI: { label: 'Short I', icon: '🐷', data: [
-                { word: 'Pin', sound: 'in' }, { word: 'Lid', sound: 'id' }, { word: 'Sit', sound: 'it' },
-                { word: 'Dig', sound: 'ig' }, { word: 'Big', sound: 'ig' }, { word: 'Wig', sound: 'ig' },
-                { word: 'Kit', sound: 'it' }, { word: 'Six', sound: 'ix' }, { word: 'Sick', sound: 'ick' }
-            ]},
-            shortO: { label: 'Short O', icon: '🐙', data: [
-                { word: 'Pot', sound: 'ot' }, { word: 'Hot', sound: 'ot' }, { word: 'Dot', sound: 'ot' },
-                { word: 'Top', sound: 'op' }, { word: 'Hop', sound: 'op' }, { word: 'Mop', sound: 'op' },
-                { word: 'Fox', sound: 'ox' }, { word: 'Box', sound: 'ox' }, { word: 'Rock', sound: 'ock' }
-            ]},
-            shortU: { label: 'Short U', icon: '☂️', data: [
-                { word: 'Bus', sound: 'us' }, { word: 'Nut', sound: 'ut' }, { word: 'Bug', sound: 'ug' },
-                { word: 'Sun', sound: 'un' }, { word: 'Cup', sound: 'up' }, { word: 'Jug', sound: 'ug' },
-                { word: 'Rug', sound: 'ug' }, { word: 'Tub', sound: 'ub' }, { word: 'Gum', sound: 'um' }
-            ]},
-            longA: { label: 'Long A', icon: '🍰', data: [
-                { word: 'Cake', sound: 'a_e' }, { word: 'Rain', sound: 'ai' }, { word: 'Day', sound: 'ay' }, { word: 'Lake', sound: 'a_e' }
-            ]},
-            longE: { label: 'Long E', icon: '🍃', data: [
-                { word: 'Bee', sound: 'ee' }, { word: 'Leaf', sound: 'ea' }, { word: 'Tree', sound: 'ee' }, { word: 'Meat', sound: 'ea' }
-            ]},
-            longI: { label: 'Long I', icon: '🚲', data: [
-                { word: 'Bike', sound: 'i_e' }, { word: 'Kite', sound: 'i_e' }, { word: 'Pie', sound: 'ie' }, { word: 'Fly', sound: 'y' }
+                { word: 'Pin', sound: 'in', longVersion: 'pine' }, { word: 'Lid', sound: 'id', longVersion: 'lied' },
+                { word: 'Sit', sound: 'it', longVersion: 'site' }, { word: 'Kit', sound: 'it', longVersion: 'kite' }
             ]}
         };
 
@@ -87,13 +65,17 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        function startRecognition(targetWord, index) {
+        function startRecognition(targetWord, longVersion, index) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return alert("Browser not supported");
+            if (!SpeechRecognition) return alert("您的瀏覽器不支援錄音功能");
 
-            const btn = document.getElementById(`mic-${index}`);
-            btn.classList.replace('bg-gray-100', 'bg-red-500');
-            btn.innerText = '🛑';
+            const statusArea = document.getElementById(`status-${index}`);
+            const feedbackArea = document.getElementById(`feedback-${index}`);
+            
+            // 顯示錄音進度圖示
+            statusArea.innerHTML = '<div class="spinner"></div>';
+            feedbackArea.innerText = '正在錄音中...';
+            feedbackArea.className = 'text-xs text-amber-500 font-bold mt-1';
 
             const recognition = new SpeechRecognition();
             recognition.lang = 'en-US';
@@ -101,22 +83,28 @@
             recognition.onresult = (event) => {
                 const result = event.results[0][0].transcript.toLowerCase().trim();
                 const target = targetWord.toLowerCase().trim();
-                let score = 0;
+                const longV = longVersion.toLowerCase().trim();
 
-                if (result === target) score = 100;
-                else if (result.includes(target)) score = 80;
-                else if (result[0] === target[0]) score = 60;
-                else if (result.length > 0) score = 40;
-                
-                const scoreEl = document.getElementById(`score-${index}`);
-                scoreEl.innerText = `${score}%`;
-                scoreEl.className = `text-xl font-black mt-1 score-anim ${score >= 80 ? 'text-green-500' : 'text-orange-500'}`;
+                statusArea.innerHTML = '<span class="text-green-500 text-xl">✓</span>'; // 辨識到就顯示完成
+
+                if (result === target) {
+                    feedbackArea.innerText = "太棒了！發音非常標準喔！";
+                    feedbackArea.className = "text-sm text-green-600 font-bold mt-1 score-anim";
+                } else if (result.includes(longV) || (currentKey.startsWith('short') && result.includes('ay'))) {
+                    feedbackArea.innerText = `聽起來像 Long音耶，要唸短音喔！再試一次`;
+                    feedbackArea.className = "text-sm text-red-500 font-bold mt-1 score-anim";
+                } else {
+                    feedbackArea.innerText = `剛才唸的是 "${result}" 嗎？再試試看喔！`;
+                    feedbackArea.className = "text-sm text-orange-500 font-bold mt-1";
+                }
+                recognition.stop();
             };
 
-            recognition.onend = () => {
-                btn.classList.replace('bg-red-500', 'bg-gray-100');
-                btn.innerText = '🎤';
+            recognition.onerror = () => {
+                statusArea.innerHTML = '🎤';
+                feedbackArea.innerText = '沒聽清楚，請點擊重試';
             };
+
             recognition.start();
         }
 
@@ -124,23 +112,23 @@
             const container = document.getElementById('app-content');
             const nav = document.getElementById('nav-bar');
             
-            // 更新單字卡
             container.innerHTML = wordData[currentKey].data.map((item, i) => `
                 <div class="card bg-white rounded-2xl p-5 shadow-sm flex items-center justify-between border-l-8 ${currentKey.startsWith('short') ? 'border-amber-400' : 'border-blue-400'}">
                     <div class="flex-1" onclick="playSound('${item.word}')">
                         <h2 class="text-3xl font-bold text-slate-800">${item.word}</h2>
-                        <p class="text-gray-400 text-sm">Family: -${item.sound}</p>
+                        <p class="text-gray-400 text-sm italic">Family: -${item.sound}</p>
                     </div>
-                    <div class="flex flex-col items-center pl-4 border-l border-gray-100">
-                        <button id="mic-${i}" onclick="startRecognition('${item.word}', ${i})" class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner">🎤</button>
-                        <span id="score-${i}" class="text-[10px] font-bold text-gray-300 mt-2">Tap to Read</span>
+                    <div class="flex flex-col items-center pl-4 border-l border-gray-100 min-w-[120px]">
+                        <button id="status-${i}" onclick="startRecognition('${item.word}', '${item.longVersion}', ${i})" class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner transition-all active:scale-90">
+                            🎤
+                        </button>
+                        <div id="feedback-${i}" class="text-[10px] text-gray-300 font-bold mt-2 text-center leading-tight">點擊麥克風練習</div>
                     </div>
                 </div>
             `).join('');
 
-            // 更新導航鈕
             nav.innerHTML = Object.keys(wordData).map(key => `
-                <button onclick="switchUnit('${key}')" class="unit-btn flex flex-col items-center px-4 py-2 rounded-xl border ${currentKey === key ? 'active-unit shadow-md' : 'bg-white border-transparent text-gray-400'}">
+                <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border ${currentKey === key ? 'active-unit shadow-md' : 'bg-white border-transparent text-gray-400'}">
                     <span class="text-2xl">${wordData[key].icon}</span>
                     <span class="text-[10px] font-bold whitespace-nowrap">${wordData[key].label}</span>
                 </button>
@@ -149,13 +137,7 @@
             document.getElementById('unit-display').innerText = wordData[currentKey].label;
         }
 
-        function switchUnit(key) {
-            currentKey = key;
-            renderApp();
-            // 切換時輕微震動回饋 (iOS 支援時)
-            if (window.navigator.vibrate) window.navigator.vibrate(10);
-        }
-
+        function switchUnit(key) { currentKey = key; renderApp(); }
         renderApp();
     </script>
 </body>
