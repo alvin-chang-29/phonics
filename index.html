@@ -4,136 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Master</title>
+    <title>Phonics Master AI</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .card { transition: all 0.2s ease; border: 2px solid transparent; }
-        .active-unit { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; transform: scale(1.1); }
-        .score-anim { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #f59e0b; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        body { font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card { transition: all 0.2s ease; }
+        .active-unit { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #f59e0b; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .voice-btn-active { background-color: #f59e0b; color: white; }
     </style>
 </head>
 <body class="bg-slate-50 h-screen overflow-hidden flex flex-col">
 
-    <header class="bg-white pt-12 pb-4 px-6 shadow-sm border-b border-gray-100">
-        <div class="flex justify-between items-end">
+    <header class="bg-white pt-12 pb-4 px-6 shadow-sm border-b">
+        <div class="flex justify-between items-start">
             <div>
-                <p class="text-xs font-black text-amber-500 uppercase tracking-widest">American English</p>
-                <h1 class="text-2xl font-bold text-slate-800">Phonics Master</h1>
+                <p class="text-[10px] font-black text-amber-500 uppercase tracking-tighter">Azure AI Pro Neural Voice</p>
+                <h1 class="text-xl font-bold text-slate-800">Phonics Master</h1>
             </div>
-            <div id="unit-display" class="bg-amber-500 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm">Short A</div>
+            <div class="flex flex-col items-end gap-2">
+                <div id="unit-display" class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">Short A</div>
+                <div class="flex bg-gray-100 rounded-lg p-1 text-[10px] font-bold">
+                    <button onclick="changeVoice('en-US-JennyNeural')" id="btn-jenny" class="px-2 py-1 rounded voice-btn-active">Jenny</button>
+                    <button onclick="changeVoice('en-US-GuyNeural')" id="btn-guy" class="px-2 py-1 rounded ml-1">Guy</button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar" id="app-content"></main>
+    <main class="flex-1 overflow-y-auto p-4 space-y-3" id="app-content"></main>
 
-    <div class="bg-white border-t border-gray-200">
-        <div class="flex overflow-x-auto py-4 px-4 space-x-4 no-scrollbar items-center" id="nav-bar"></div>
-        <div class="text-center pb-8 text-[10px] text-gray-400 font-medium tracking-widest">PWA PHONICS LEARNING SYSTEM</div>
-    </div>
+    <div class="bg-white border-t p-4 flex space-x-3 overflow-x-auto" id="nav-bar"></div>
 
     <script>
+        const subscriptionKey = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
+        const serviceRegion = "eastasia";
+        let currentVoice = "en-US-JennyNeural";
+
         const wordData = {
             shortA: { label: 'Short A', icon: '🍎', data: [
-                { word: 'Cat', sound: 'at', longVersion: 'kate' }, { word: 'Bag', sound: 'ag', longVersion: 'baig' },
-                { word: 'Cap', sound: 'ap', longVersion: 'cape' }, { word: 'Sad', sound: 'ad', longVersion: 'said' },
-                { word: 'Van', sound: 'an', longVersion: 'vain' }, { word: 'Bat', sound: 'at', longVersion: 'bait' },
-                { word: 'Rat', sound: 'at', longVersion: 'rate' }, { word: 'Pan', sound: 'an', longVersion: 'pain' },
-                { word: 'Can', sound: 'an', longVersion: 'cane' }
+                { word: 'Ant', sound: 'ant' }, { word: 'Cat', sound: 'at' }, { word: 'Bag', sound: 'ag' }, { word: 'Cap', sound: 'ap' },
+                { word: 'Sad', sound: 'ad' }, { word: 'Van', sound: 'an' }, { word: 'Bat', sound: 'at' }, { word: 'Rat', sound: 'at' },
+                { word: 'Pan', sound: 'an' }, { word: 'Can', sound: 'an' }
             ]},
             shortE: { label: 'Short E', icon: '🥚', data: [
-                { word: 'Bed', sound: 'ed', longVersion: 'bead' }, { word: 'Jet', sound: 'et', longVersion: 'jeet' },
-                { word: 'Red', sound: 'ed', longVersion: 'read' }, { word: 'Net', sound: 'et', longVersion: 'neat' }
+                { word: 'Bed', sound: 'ed' }, { word: 'Jet', sound: 'et' }, { word: 'Pen', sound: 'en' }, { word: 'Red', sound: 'ed' },
+                { word: 'Net', sound: 'et' }, { word: 'Hen', sound: 'en' }, { word: 'Egg', sound: 'egg' }
             ]},
             shortI: { label: 'Short I', icon: '🐷', data: [
-                { word: 'Pin', sound: 'in', longVersion: 'pine' }, { word: 'Lid', sound: 'id', longVersion: 'lied' },
-                { word: 'Sit', sound: 'it', longVersion: 'site' }, { word: 'Kit', sound: 'it', longVersion: 'kite' }
+                { word: 'Pin', sound: 'in' }, { word: 'Lid', sound: 'id' }, { word: 'Sit', sound: 'it' }, { word: 'Pig', sound: 'ig' },
+                { word: 'Wig', sound: 'ig' }, { word: 'Bin', sound: 'in' }, { word: 'Six', sound: 'ix' }
+            ]},
+            shortO: { label: 'Short O', icon: '🐙', data: [
+                { word: 'Pot', sound: 'ot' }, { word: 'Hot', sound: 'ot' }, { word: 'Dot', sound: 'ot' }, { word: 'Dog', sound: 'og' },
+                { word: 'Box', sound: 'ox' }, { word: 'Fox', sound: 'ox' }, { word: 'Top', sound: 'op' }
+            ]},
+            shortU: { label: 'Short U', icon: '☂️', data: [
+                { word: 'Bus', sound: 'us' }, { word: 'Sun', sound: 'un' }, { word: 'Cup', sound: 'up' }, { word: 'Bug', sound: 'ug' },
+                { word: 'Nut', sound: 'ut' }, { word: 'Rug', sound: 'ug' }, { word: 'Tub', sound: 'ub' }
             ]}
         };
 
         let currentKey = 'shortA';
 
+        // 使用 Azure 神經網路語音播放
         function playSound(text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.8;
-            window.speechSynthesis.speak(utterance);
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+            speechConfig.speechSynthesisVoiceName = currentVoice;
+            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            synthesizer.speakTextAsync(text, result => { synthesizer.close(); }, err => { console.error(err); });
         }
 
-        function startRecognition(targetWord, longVersion, index) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return alert("您的瀏覽器不支援錄音功能");
+        function changeVoice(voiceName) {
+            currentVoice = voiceName;
+            document.getElementById('btn-jenny').classList.toggle('voice-btn-active', voiceName.includes('Jenny'));
+            document.getElementById('btn-guy').classList.toggle('voice-btn-active', voiceName.includes('Guy'));
+        }
 
-            const statusArea = document.getElementById(`status-${index}`);
-            const feedbackArea = document.getElementById(`feedback-${index}`);
-            
-            // 顯示錄音進度圖示
-            statusArea.innerHTML = '<div class="spinner"></div>';
-            feedbackArea.innerText = '正在錄音中...';
-            feedbackArea.className = 'text-xs text-amber-500 font-bold mt-1';
+        async function startAzureEval(targetWord, index) {
+            const statusIcon = document.getElementById(`status-${index}`);
+            const feedbackText = document.getElementById(`feedback-${index}`);
+            statusIcon.innerHTML = '<div class="spinner"></div>';
+            feedbackText.innerText = 'Listening...';
 
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            
-            recognition.onresult = (event) => {
-                const result = event.results[0][0].transcript.toLowerCase().trim();
-                const target = targetWord.toLowerCase().trim();
-                const longV = longVersion.toLowerCase().trim();
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(targetWord, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
+            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+            pronConfig.applyTo(recognizer);
 
-                statusArea.innerHTML = '<span class="text-green-500 text-xl">✓</span>'; // 辨識到就顯示完成
-
-                if (result === target) {
-                    feedbackArea.innerText = "太棒了！發音非常標準喔！";
-                    feedbackArea.className = "text-sm text-green-600 font-bold mt-1 score-anim";
-                } else if (result.includes(longV) || (currentKey.startsWith('short') && result.includes('ay'))) {
-                    feedbackArea.innerText = `聽起來像 Long音耶，要唸短音喔！再試一次`;
-                    feedbackArea.className = "text-sm text-red-500 font-bold mt-1 score-anim";
+            recognizer.recognizeOnceAsync(result => {
+                const score = SpeechSDK.PronunciationAssessmentResult.fromResult(result).accuracyScore;
+                if (score >= 80) {
+                    statusIcon.innerHTML = '✅';
+                    feedbackText.innerText = "Excellent!";
+                    feedbackText.className = "text-[10px] text-green-600 font-bold mt-2";
                 } else {
-                    feedbackArea.innerText = `剛才唸的是 "${result}" 嗎？再試試看喔！`;
-                    feedbackArea.className = "text-sm text-orange-500 font-bold mt-1";
+                    statusIcon.innerHTML = '🎤';
+                    feedbackText.innerText = "Try again!";
+                    feedbackText.className = "text-[10px] text-orange-500 font-bold mt-2";
                 }
-                recognition.stop();
-            };
-
-            recognition.onerror = () => {
-                statusArea.innerHTML = '🎤';
-                feedbackArea.innerText = '沒聽清楚，請點擊重試';
-            };
-
-            recognition.start();
+                recognizer.close();
+            });
         }
 
         function renderApp() {
             const container = document.getElementById('app-content');
-            const nav = document.getElementById('nav-bar');
-            
             container.innerHTML = wordData[currentKey].data.map((item, i) => `
-                <div class="card bg-white rounded-2xl p-5 shadow-sm flex items-center justify-between border-l-8 ${currentKey.startsWith('short') ? 'border-amber-400' : 'border-blue-400'}">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border-l-4 border-amber-400 flex justify-between items-center card">
                     <div class="flex-1" onclick="playSound('${item.word}')">
-                        <h2 class="text-3xl font-bold text-slate-800">${item.word}</h2>
-                        <p class="text-gray-400 text-sm italic">Family: -${item.sound}</p>
+                        <h2 class="text-3xl font-black text-slate-800">${item.word}</h2>
+                        <p class="text-gray-400 text-xs italic">-${item.sound} family</p>
                     </div>
-                    <div class="flex flex-col items-center pl-4 border-l border-gray-100 min-w-[120px]">
-                        <button id="status-${i}" onclick="startRecognition('${item.word}', '${item.longVersion}', ${i})" class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner transition-all active:scale-90">
-                            🎤
-                        </button>
-                        <div id="feedback-${i}" class="text-[10px] text-gray-300 font-bold mt-2 text-center leading-tight">點擊麥克風練習</div>
+                    <div class="flex flex-col items-center pl-4 border-l min-w-[90px]">
+                        <button id="status-${i}" onclick="startAzureEval('${item.word}', ${i})" class="bg-slate-50 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-inner">🎤</button>
+                        <div id="feedback-${i}" class="text-[10px] text-gray-300 font-bold mt-2 text-center">Tap to practice</div>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
 
-            nav.innerHTML = Object.keys(wordData).map(key => `
-                <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border ${currentKey === key ? 'active-unit shadow-md' : 'bg-white border-transparent text-gray-400'}">
-                    <span class="text-2xl">${wordData[key].icon}</span>
-                    <span class="text-[10px] font-bold whitespace-nowrap">${wordData[key].label}</span>
-                </button>
-            `).join('');
-
+            document.getElementById('nav-bar').innerHTML = Object.keys(wordData).map(key => `
+                <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border ${currentKey === key ? 'active-unit shadow-md' : 'border-transparent text-gray-400'}">
+                    <span class="text-xl">${wordData[key].icon}</span><span class="text-[10px] font-bold">${wordData[key].label}</span>
+                </button>`).join('');
             document.getElementById('unit-display').innerText = wordData[currentKey].label;
         }
 
