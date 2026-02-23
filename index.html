@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Phonics Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card { transition: all 0.2s ease; border: 2px solid transparent; }
+        .card:active { transform: scale(0.98); }
+        .unit-btn { transition: all 0.3s; flex-shrink: 0; }
+        .active-unit { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; transform: scale(1.1); }
+        .score-anim { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        /* 隱藏捲軸但保持滾動功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen overflow-hidden flex flex-col">
+
+    <header class="bg-white pt-12 pb-4 px-6 shadow-sm border-b border-gray-100">
+        <div class="flex justify-between items-end">
+            <div>
+                <p class="text-xs font-black text-amber-500 uppercase tracking-widest">American English</p>
+                <h1 class="text-2xl font-bold text-slate-800">Phonics Master</h1>
+            </div>
+            <div id="unit-display" class="bg-amber-500 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm">Short A</div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar" id="app-content">
+        </main>
+
+    <div class="bg-white border-t border-gray-200">
+        <div class="flex overflow-x-auto py-4 px-4 space-x-4 no-scrollbar items-center" id="nav-bar">
+            </div>
+        <div class="text-center pb-8 text-[10px] text-gray-400 font-medium">Add to Home Screen for Full Experience</div>
+    </div>
+
+    <script>
+        const wordData = {
+            shortA: { label: 'Short A', icon: '🍎', data: [
+                { word: 'Cat', sound: 'at' }, { word: 'Bag', sound: 'ag' }, { word: 'Cap', sound: 'ap' },
+                { word: 'Sad', sound: 'ad' }, { word: 'Van', sound: 'an' }, { word: 'Bat', sound: 'at' },
+                { word: 'Rat', sound: 'at' }, { word: 'Pan', sound: 'an' }, { word: 'Can', sound: 'an' }
+            ]},
+            shortE: { label: 'Short E', icon: '🥚', data: [
+                { word: 'Bed', sound: 'ed' }, { word: 'Jet', sound: 'et' }, { word: 'Pen', sound: 'en' },
+                { word: 'Red', sound: 'ed' }, { word: 'Egg', sound: 'eg' }, { word: 'Leg', sound: 'eg' },
+                { word: 'Net', sound: 'et' }, { word: 'Wet', sound: 'et' }, { word: 'Web', sound: 'eb' }
+            ]},
+            shortI: { label: 'Short I', icon: '🐷', data: [
+                { word: 'Pin', sound: 'in' }, { word: 'Lid', sound: 'id' }, { word: 'Sit', sound: 'it' },
+                { word: 'Dig', sound: 'ig' }, { word: 'Big', sound: 'ig' }, { word: 'Wig', sound: 'ig' },
+                { word: 'Kit', sound: 'it' }, { word: 'Six', sound: 'ix' }, { word: 'Sick', sound: 'ick' }
+            ]},
+            shortO: { label: 'Short O', icon: '🐙', data: [
+                { word: 'Pot', sound: 'ot' }, { word: 'Hot', sound: 'ot' }, { word: 'Dot', sound: 'ot' },
+                { word: 'Top', sound: 'op' }, { word: 'Hop', sound: 'op' }, { word: 'Mop', sound: 'op' },
+                { word: 'Fox', sound: 'ox' }, { word: 'Box', sound: 'ox' }, { word: 'Rock', sound: 'ock' }
+            ]},
+            shortU: { label: 'Short U', icon: '☂️', data: [
+                { word: 'Bus', sound: 'us' }, { word: 'Nut', sound: 'ut' }, { word: 'Bug', sound: 'ug' },
+                { word: 'Sun', sound: 'un' }, { word: 'Cup', sound: 'up' }, { word: 'Jug', sound: 'ug' },
+                { word: 'Rug', sound: 'ug' }, { word: 'Tub', sound: 'ub' }, { word: 'Gum', sound: 'um' }
+            ]},
+            longA: { label: 'Long A', icon: '🍰', data: [
+                { word: 'Cake', sound: 'a_e' }, { word: 'Rain', sound: 'ai' }, { word: 'Day', sound: 'ay' }, { word: 'Lake', sound: 'a_e' }
+            ]},
+            longE: { label: 'Long E', icon: '🍃', data: [
+                { word: 'Bee', sound: 'ee' }, { word: 'Leaf', sound: 'ea' }, { word: 'Tree', sound: 'ee' }, { word: 'Meat', sound: 'ea' }
+            ]},
+            longI: { label: 'Long I', icon: '🚲', data: [
+                { word: 'Bike', sound: 'i_e' }, { word: 'Kite', sound: 'i_e' }, { word: 'Pie', sound: 'ie' }, { word: 'Fly', sound: 'y' }
+            ]}
+        };
+
+        let currentKey = 'shortA';
+
+        function playSound(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startRecognition(targetWord, index) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert("Browser not supported");
+
+            const btn = document.getElementById(`mic-${index}`);
+            btn.classList.replace('bg-gray-100', 'bg-red-500');
+            btn.innerText = '🛑';
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = (event) => {
+                const result = event.results[0][0].transcript.toLowerCase().trim();
+                const target = targetWord.toLowerCase().trim();
+                let score = 0;
+
+                if (result === target) score = 100;
+                else if (result.includes(target)) score = 80;
+                else if (result[0] === target[0]) score = 60;
+                else if (result.length > 0) score = 40;
+                
+                const scoreEl = document.getElementById(`score-${index}`);
+                scoreEl.innerText = `${score}%`;
+                scoreEl.className = `text-xl font-black mt-1 score-anim ${score >= 80 ? 'text-green-500' : 'text-orange-500'}`;
+            };
+
+            recognition.onend = () => {
+                btn.classList.replace('bg-red-500', 'bg-gray-100');
+                btn.innerText = '🎤';
+            };
+            recognition.start();
+        }
+
+        function renderApp() {
+            const container = document.getElementById('app-content');
+            const nav = document.getElementById('nav-bar');
+            
+            // 更新單字卡
+            container.innerHTML = wordData[currentKey].data.map((item, i) => `
+                <div class="card bg-white rounded-2xl p-5 shadow-sm flex items-center justify-between border-l-8 ${currentKey.startsWith('short') ? 'border-amber-400' : 'border-blue-400'}">
+                    <div class="flex-1" onclick="playSound('${item.word}')">
+                        <h2 class="text-3xl font-bold text-slate-800">${item.word}</h2>
+                        <p class="text-gray-400 text-sm">Family: -${item.sound}</p>
+                    </div>
+                    <div class="flex flex-col items-center pl-4 border-l border-gray-100">
+                        <button id="mic-${i}" onclick="startRecognition('${item.word}', ${i})" class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner">🎤</button>
+                        <span id="score-${i}" class="text-[10px] font-bold text-gray-300 mt-2">Tap to Read</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // 更新導航鈕
+            nav.innerHTML = Object.keys(wordData).map(key => `
+                <button onclick="switchUnit('${key}')" class="unit-btn flex flex-col items-center px-4 py-2 rounded-xl border ${currentKey === key ? 'active-unit shadow-md' : 'bg-white border-transparent text-gray-400'}">
+                    <span class="text-2xl">${wordData[key].icon}</span>
+                    <span class="text-[10px] font-bold whitespace-nowrap">${wordData[key].label}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('unit-display').innerText = wordData[currentKey].label;
+        }
+
+        function switchUnit(key) {
+            currentKey = key;
+            renderApp();
+            // 切換時輕微震動回饋 (iOS 支援時)
+            if (window.navigator.vibrate) window.navigator.vibrate(10);
+        }
+
+        renderApp();
+    </script>
+</body>
+</html>
