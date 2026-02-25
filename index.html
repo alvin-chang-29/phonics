@@ -4,69 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics Master AI Pro</title>
+    <title>Phonics Master Mobile Pro</title>
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .active-unit { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #f59e0b; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; background: #fdf6e3; }
+        .tab-active { color: #EE1515; border-bottom: 4px solid #EE1515; }
+        .poke-card { border: 6px solid #FFDE00; border-radius: 25px; background: white; }
+        .mic-btn { 
+            width: 60px; height: 60px; 
+            background-image: url('https://img.icons8.com/color/96/pokeball.png'); 
+            background-size: contain; background-repeat: no-repeat;
+            cursor: pointer;
+        }
+        /* 錄音時球會動 */
+        .recording .mic-btn { animation: shake 0.5s infinite; }
+        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .tab-active { color: #f59e0b; border-bottom: 3px solid #f59e0b; }
     </style>
 </head>
-<body class="bg-slate-50 h-screen overflow-hidden flex flex-col">
+<body class="h-screen flex flex-col overflow-hidden">
 
-    <div id="setup-overlay" class="fixed inset-0 bg-amber-500 z-50 flex flex-col items-center justify-center p-10 text-white text-center">
-        <h2 class="text-3xl font-bold mb-4">歡迎使用 AI 學習系統</h2>
-        <button onclick="initApp()" class="bg-white text-amber-600 px-10 py-4 rounded-full font-black text-xl shadow-2xl">啟動系統</button>
+    <div id="setup-overlay" class="fixed inset-0 bg-red-600 z-50 flex flex-col items-center justify-center text-white p-10 text-center">
+        <h2 class="text-3xl font-black mb-6 text-yellow-400">POKÉ PHONICS</h2>
+        <div class="mb-8 w-full max-w-xs text-left">
+            <label class="block text-sm font-bold mb-2">選擇老師聲音：</label>
+            <select id="voice-select" class="w-full p-4 rounded-2xl text-black font-bold shadow-xl">
+                <option value="en-US-AvaNeural">Ava (推薦 - 親切女聲)</option>
+                <option value="en-US-AndrewNeural">Andrew (穩重男聲)</option>
+                <option value="en-GB-SoniaNeural">Sonia (英式女聲)</option>
+            </select>
+        </div>
+        <button onclick="initApp()" class="bg-white text-red-600 px-16 py-5 rounded-full font-black text-2xl shadow-2xl active:scale-95 transition-transform">進入訓練</button>
     </div>
 
-    <header class="bg-white pt-12 px-6 shadow-sm border-b">
+    <header class="bg-white pt-12 px-6 shadow-md z-10">
         <div class="flex justify-between items-center mb-4">
-            <h1 class="text-xl font-bold text-slate-800">Phonics Master</h1>
-            <button onclick="showAddModal()" class="bg-amber-100 text-amber-600 p-2 rounded-full font-bold">＋ 新增</button>
+            <h1 class="text-xl font-bold text-slate-800">練習儀表板</h1>
+            <button onclick="showAddModal()" class="bg-red-500 text-white px-4 py-1 rounded-full font-bold text-xs shadow-md">＋ 新增內容</button>
         </div>
         <div class="flex space-x-8">
-            <button onclick="switchTab('words')" id="tab-words" class="pb-2 font-bold tab-active">單字練習</button>
+            <button onclick="switchTab('words')" id="tab-words" class="pb-2 font-bold tab-active">單字卡 (小寫)</button>
             <button onclick="switchTab('sentences')" id="tab-sentences" class="pb-2 font-bold text-gray-400">例句練習</button>
         </div>
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 no-scrollbar" id="app-content"></main>
 
-    <div id="word-nav" class="bg-white border-t p-4 flex gap-3 overflow-x-auto no-scrollbar"></div>
+    <nav id="unit-nav" class="bg-white border-t p-4 flex gap-4 overflow-x-auto no-scrollbar shadow-inner"></nav>
 
-    <div id="add-modal" class="fixed inset-0 bg-black/50 z-40 hidden flex items-center justify-center p-6">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-            <h3 class="text-lg font-bold mb-4" id="modal-title">新增學習內容</h3>
-            <input type="text" id="input-content" class="w-full border p-3 rounded-xl mb-4" placeholder="輸入單字或例句 (100字內)">
-            <div class="flex gap-3">
-                <button onclick="hideAddModal()" class="flex-1 py-3 text-gray-500 font-bold">取消</button>
-                <button onclick="processAdd()" class="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold">確認新增</button>
+    <div id="add-modal" class="fixed inset-0 bg-black/60 z-40 hidden flex items-center justify-center p-6">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 class="font-bold mb-4 text-slate-800 text-lg">新增學習內容</h3>
+            <textarea id="input-content" class="w-full border-2 border-slate-100 p-4 rounded-2xl mb-4 h-28 focus:border-yellow-400 outline-none" placeholder="輸入想練習的內容..."></textarea>
+            <div class="flex gap-4">
+                <button onclick="hideAddModal()" class="flex-1 py-4 text-slate-400 font-bold">取消</button>
+                <button onclick="processAdd()" class="flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold shadow-lg">確認新增</button>
             </div>
         </div>
     </div>
 
     <script>
-        const subscriptionKey = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
-        const serviceRegion = "eastasia";
-        let currentVoice = "en-US-AvaNeural";
+        const azureKey = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
+        const azureRegion = "eastasia";
         let isRecording = false;
         let currentTab = 'words';
+        let currentUnit = 'shortA';
+        let selectedVoice = "en-US-AvaNeural";
 
-        // 初始資料庫
-        let wordData = JSON.parse(localStorage.getItem('phonics_words')) || {
-            shortA: { label: 'Short A', icon: '🍎', data: [{word:'Cat',sound:'at'}] },
-            longA: { label: 'Long A', icon: '🍰', data: [{word:'Cake',sound:'a-e'}] }
+        // 資料庫初始化
+        let wordData = JSON.parse(localStorage.getItem('phonics_words_v3')) || {
+            shortA: { label: 'Short A', icon: '🍎', data: [{word:'cat'},{word:'bag'}] },
+            longA: { label: 'Long A', icon: '🍰', data: [{word:'cake'},{word:'lake'}] }
         };
-        let sentenceData = JSON.parse(localStorage.getItem('phonics_sentences')) || [
-            "The cat sat on the mat.",
-            "I like to eat cake in the rain."
+        let sentenceData = JSON.parse(localStorage.getItem('phonics_sentences_v3')) || [
+            "the cat sat on the mat.",
+            "i like to eat cake."
         ];
 
         function initApp() {
+            selectedVoice = document.getElementById('voice-select').value;
             navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
                 document.getElementById('setup-overlay').style.display = 'none';
                 renderApp();
@@ -77,42 +94,38 @@
             currentTab = tab;
             document.getElementById('tab-words').className = tab === 'words' ? 'pb-2 font-bold tab-active' : 'pb-2 font-bold text-gray-400';
             document.getElementById('tab-sentences').className = tab === 'sentences' ? 'pb-2 font-bold tab-active' : 'pb-2 font-bold text-gray-400';
-            document.getElementById('word-nav').style.display = tab === 'words' ? 'flex' : 'none';
+            document.getElementById('unit-nav').style.display = tab === 'words' ? 'flex' : 'none';
             renderApp();
         }
 
-        // 自動歸類邏輯
+        // AI 自動歸類邏輯
         function autoCategorize(word) {
             word = word.toLowerCase();
-            if (word.endsWith('e')) return 'long' + (word.match(/[aeiou]/) || ['a'])[0].toUpperCase();
-            if (word.includes('ai') || word.includes('ay')) return 'longA';
-            if (word.includes('ee') || word.includes('ea')) return 'longE';
-            return 'short' + (word.match(/[aeiou]/) || ['a'])[0].toUpperCase();
+            if (word.endsWith('e') || word.includes('ai') || word.includes('ay')) return 'longA';
+            return 'shortA';
         }
 
-        function showAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
-        function hideAddModal() { document.getElementById('add-modal').classList.add('hidden'); document.getElementById('input-content').value = ''; }
-
         function processAdd() {
-            const input = document.getElementById('input-content').value.trim();
-            if (!input || input.length > 100) return alert("請輸入有效內容且不超過100字");
+            const input = document.getElementById('input-content').value.trim().toLowerCase();
+            if (!input) return;
 
             if (currentTab === 'words') {
                 const cat = autoCategorize(input);
-                if (!wordData[cat]) wordData[cat] = { label: cat, icon: '🆕', data: [] };
-                wordData[cat].data.push({ word: input, sound: 'auto' });
-                localStorage.setItem('phonics_words', JSON.stringify(wordData));
+                if(!wordData[cat]) wordData[cat] = { label: cat, icon: '🆕', data: [] };
+                wordData[cat].data.push({ word: input });
+                localStorage.setItem('phonics_words_v3', JSON.stringify(wordData));
             } else {
                 sentenceData.push(input);
-                localStorage.setItem('phonics_sentences', JSON.stringify(sentenceData));
+                localStorage.setItem('phonics_sentences_v3', JSON.stringify(sentenceData));
             }
             hideAddModal();
             renderApp();
         }
 
-        function playSound(text) {
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-            speechConfig.speechSynthesisVoiceName = currentVoice;
+        function speak(text) {
+            if(isRecording) return;
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+            speechConfig.speechSynthesisVoiceName = selectedVoice;
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
             synthesizer.speakTextAsync(text, r => synthesizer.close());
         }
@@ -120,35 +133,38 @@
         async function startEval(text, index) {
             if(isRecording) return;
             isRecording = true;
-            const statusIcon = document.getElementById(`status-${index}`);
-            const feedbackText = document.getElementById(`feedback-${index}`);
+            
+            const card = document.getElementById(`card-${index}`);
+            const fb = document.getElementById(`fb-${index}`);
+            card.classList.add('recording');
+            
             let timeLeft = 5;
-
+            fb.innerText = `聆聽中... (${timeLeft}s)`;
             const timer = setInterval(() => {
                 timeLeft--;
-                feedbackText.innerText = `Listening... (${timeLeft}s)`;
+                fb.innerText = `聆聽中... (${timeLeft}s)`;
                 if(timeLeft <= 0) clearInterval(timer);
             }, 1000);
 
-            statusIcon.innerHTML = '<div class="spinner"></div>';
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, 100, 0);
             const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
             recognizer.recognizeOnceAsync(result => {
                 clearInterval(timer);
                 const score = SpeechSDK.PronunciationAssessmentResult.fromResult(result).accuracyScore;
-                if (score >= 70) {
-                    statusIcon.innerHTML = '✅';
-                    feedbackText.innerText = `Great! Score: ${Math.round(score)}`;
-                    feedbackText.className = "text-[10px] text-green-600 font-bold mt-2";
+                card.classList.remove('recording');
+                
+                if (score >= 80) {
+                    fb.innerText = "太棒了！🌟";
+                    fb.className = "text-xs font-bold mt-2 text-green-600";
                 } else {
-                    statusIcon.innerHTML = '🎤';
-                    feedbackText.innerText = "Try again!";
-                    feedbackText.className = "text-[10px] text-orange-500 font-bold mt-2";
+                    fb.innerText = "再試一次！";
+                    fb.className = "text-xs font-bold mt-2 text-red-500";
                 }
+                
                 isRecording = false;
                 recognizer.close();
             });
@@ -156,32 +172,43 @@
 
         function renderApp() {
             const container = document.getElementById('app-content');
+            const nav = document.getElementById('unit-nav');
+
             if (currentTab === 'words') {
-                const currentKey = Object.keys(wordData)[0]; // 預設顯示第一個
-                container.innerHTML = (wordData[currentKey]?.data || []).map((item, i) => `
-                    <div class="bg-white rounded-2xl p-4 mb-3 shadow-sm border-l-4 border-amber-400 flex justify-between items-center">
-                        <div class="flex-1" onclick="playSound('${item.word}')">
-                            <h2 class="text-3xl font-black">${item.word}</h2>
+                container.innerHTML = (wordData[currentUnit]?.data || []).map((item, i) => `
+                    <div class="poke-card p-6 mb-4 flex justify-between items-center shadow-sm" id="card-${i}">
+                        <div onclick="speak('${item.word}')" class="flex-1">
+                            <h2 class="text-4xl font-black text-blue-900">${item.word.toLowerCase()}</h2>
+                            <p class="text-[10px] text-gray-400 font-bold mt-1">點擊單字聽發音</p>
                         </div>
-                        <div class="flex flex-col items-center min-w-[100px]">
-                            <button id="status-${i}" onclick="startEval('${item.word}', ${i})" class="bg-slate-50 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-inner">🎤</button>
-                            <div id="feedback-${i}" class="text-[10px] text-gray-300 font-bold mt-2">Tap to practice</div>
+                        <div class="flex flex-col items-center ml-4" onclick="startEval('${item.word}', ${i})">
+                            <div class="mic-btn"></div>
+                            <p id="fb-${i}" class="text-[10px] font-bold mt-2 text-gray-300">按球錄音</p>
                         </div>
                     </div>`).join('');
                 
-                document.getElementById('word-nav').innerHTML = Object.keys(wordData).map(key => `
-                    <button class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border">${wordData[key].icon}<span class="text-[10px] font-bold">${wordData[key].label}</span></button>`).join('');
+                nav.innerHTML = Object.keys(wordData).map(key => `
+                    <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-6 py-3 rounded-2xl border-2 ${currentUnit === key ? 'bg-yellow-100 border-yellow-400 text-yellow-700' : 'bg-white border-transparent text-gray-400'}">
+                        <span class="text-xl">${wordData[key].icon}</span>
+                        <span class="text-[10px] font-bold">${wordData[key].label}</span>
+                    </button>`).join('');
             } else {
                 container.innerHTML = sentenceData.map((s, i) => `
-                    <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border-l-4 border-blue-400">
-                        <p class="text-lg font-medium text-slate-700 mb-4" onclick="playSound('${s}')">${s}</p>
-                        <div class="flex justify-between items-center border-t pt-3">
-                            <div id="feedback-${i}" class="text-xs text-gray-400 font-bold">點擊右方錄音練習長句</div>
-                            <button id="status-${i}" onclick="startEval('${s}', ${i})" class="bg-blue-50 w-10 h-10 rounded-full flex items-center justify-center text-lg">🎤</button>
+                    <div class="bg-white rounded-3xl p-6 mb-4 border-l-8 border-blue-500 shadow-md" id="card-${i}">
+                        <p class="text-xl font-bold text-slate-700 mb-6 leading-tight" onclick="speak('${s}')">${s.toLowerCase()}</p>
+                        <div class="flex justify-between items-center border-t pt-4">
+                            <p id="fb-${i}" class="text-xs font-bold text-gray-300">點擊句子播放 / 按球練習</p>
+                            <div onclick="startEval('${s}', ${i})" class="mic-btn scale-90"></div>
                         </div>
                     </div>`).join('');
             }
         }
+
+        function switchUnit(key) { currentUnit = key; renderApp(); }
+        function showAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
+        function hideAddModal() { document.getElementById('add-modal').classList.add('hidden'); }
+        
+        renderApp();
     </script>
 </body>
 </html>
