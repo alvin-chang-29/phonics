@@ -4,45 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics Master Mobile</title>
+    <title>Phonics Master Mobile Pro</title>
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --poke-red: #EE1515;
-            --poke-blue: #3B4CCA;
-            --poke-yellow: #FFDE00;
-            /* 模組化圖片按鈕 */
-            --mic-img: url('https://img.icons8.com/color/96/pokeball.png');
-        }
-        body { font-family: -apple-system, sans-serif; background: #f8fafc; }
-        .tab-active { color: var(--poke-red); border-bottom: 4px solid var(--poke-red); }
-        .poke-card { border: 8px solid var(--poke-yellow); border-radius: 25px; transition: transform 0.1s; }
-        .poke-card:active { transform: scale(0.98); }
-        .mic-btn { 
-            width: 60px; height: 60px; 
-            background-image: var(--mic-img); 
-            background-size: contain; 
-            background-repeat: no-repeat;
-        }
+        body { font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .tab-active { color: #EE1515; border-bottom: 3px solid #EE1515; }
+        .poke-card { border: 6px solid #FFDE00; border-radius: 20px; transition: transform 0.1s; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3B4CCA; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .mic-btn { width: 50px; height: 50px; background-image: url('https://img.icons8.com/color/96/pokeball.png'); background-size: contain; background-repeat: no-repeat; }
         .recording .mic-btn { animation: shake 0.5s infinite; }
-        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+        @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        button:disabled { opacity: 0.5; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-50 h-screen flex flex-col overflow-hidden">
 
     <div id="setup-overlay" class="fixed inset-0 bg-red-600 z-50 flex flex-col items-center justify-center text-white p-6">
-        <h1 class="text-4xl font-black mb-8 text-center text-yellow-400">POKÉ PHONICS<br>MOBILE</h1>
-        <button onclick="initApp()" class="bg-white text-red-600 px-12 py-4 rounded-full font-black text-xl shadow-xl">START TEST</button>
+        <div class="text-8xl mb-6">🔴</div>
+        <h1 class="text-3xl font-black mb-8 text-yellow-400 text-center">POKÉ PHONICS MOBILE</h1>
+        <button onclick="initApp()" class="bg-white text-red-600 px-12 py-4 rounded-full font-black text-xl shadow-xl">START TRAINING</button>
     </div>
 
-    <header class="bg-white pt-12 px-6 shadow-sm">
+    <header class="bg-white pt-12 px-6 shadow-sm border-b">
         <div class="flex justify-between items-center mb-4">
-            <h1 class="text-xl font-bold text-slate-800">Training Mode</h1>
-            <button onclick="showAddModal()" class="bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold text-sm">＋ ADD</button>
+            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Trainer Dashboard</h1>
+            <button onclick="showAddModal()" class="bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold text-xs">＋ ADD NEW</button>
         </div>
-        <div class="flex space-x-6 text-sm">
+        <div class="flex space-x-8 text-sm">
             <button onclick="switchTab('words')" id="tab-words" class="pb-2 font-bold tab-active">WORDS</button>
             <button onclick="switchTab('sentences')" id="tab-sentences" class="pb-2 font-bold text-gray-400">SENTENCES</button>
         </div>
@@ -55,9 +46,9 @@
     <div id="add-modal" class="fixed inset-0 bg-black/60 z-40 hidden flex items-center justify-center p-6">
         <div class="bg-white rounded-3xl p-6 w-full">
             <h3 class="font-bold mb-4">Add Content</h3>
-            <textarea id="input-content" class="w-full border p-3 rounded-xl mb-4 h-24" placeholder="Enter word or sentence..."></textarea>
+            <textarea id="input-content" class="w-full border p-3 rounded-xl mb-4 h-24" placeholder="Enter word or sentence (100 chars)..."></textarea>
             <div class="flex gap-3">
-                <button onclick="hideAddModal()" class="flex-1 py-3 text-gray-400">Cancel</button>
+                <button onclick="hideAddModal()" class="flex-1 py-3 text-gray-400 font-bold">Cancel</button>
                 <button onclick="processAdd()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold">Confirm</button>
             </div>
         </div>
@@ -68,6 +59,7 @@
         const azureRegion = "eastasia";
         let isRecording = false;
         let currentTab = 'words';
+        let currentUnit = 'shortA';
 
         // 在地儲存資料
         let wordData = JSON.parse(localStorage.getItem('local_poke_words')) || {
@@ -91,11 +83,12 @@
             renderApp();
         }
 
-        // --- 核心功能：AI 自動歸類 ---
+        // --- AI 自動歸類邏輯 ---
         function autoCategorize(word) {
             word = word.toLowerCase();
             if (word.endsWith('e') || word.includes('ai') || word.includes('ay')) return 'longA';
-            return 'shortA'; // 簡易範例，可再擴充
+            if (word.includes('ee') || word.includes('ea')) return 'longE';
+            return 'shortA';
         }
 
         function processAdd() {
@@ -116,6 +109,7 @@
         }
 
         function speak(text) {
+            if(isRecording) return;
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
             speechConfig.speechSynthesisVoiceName = "en-US-AvaNeural";
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
@@ -125,10 +119,18 @@
         async function startEval(text, index) {
             if(isRecording) return;
             isRecording = true;
+            document.querySelectorAll('.mic-btn-container').forEach(el => el.style.pointerEvents = 'none');
+
             const fb = document.getElementById(`fb-${index}`);
             const card = document.getElementById(`card-${index}`);
             card.classList.add('recording');
-            fb.innerText = "Listening...";
+            
+            let timeLeft = 5;
+            const timer = setInterval(() => {
+                timeLeft--;
+                fb.innerText = `Listening... (${timeLeft}s)`;
+                if(timeLeft <= 0) clearInterval(timer);
+            }, 1000);
 
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
@@ -137,42 +139,54 @@
             pronConfig.applyTo(recognizer);
 
             recognizer.recognizeOnceAsync(result => {
+                clearInterval(timer);
                 const score = SpeechSDK.PronunciationAssessmentResult.fromResult(result).accuracyScore;
                 card.classList.remove('recording');
-                fb.innerText = score >= 80 ? "EXCELLENT! 🌟" : "TRY AGAIN!";
+                fb.innerText = score >= 80 ? "EXCELLENT! 🌟" : "TRY AGAIN! 💢";
+                fb.className = score >= 80 ? "text-[10px] font-bold mt-2 text-green-600" : "text-[10px] font-bold mt-2 text-red-500";
+                
                 isRecording = false;
+                document.querySelectorAll('.mic-btn-container').forEach(el => el.style.pointerEvents = 'auto');
                 recognizer.close();
             });
         }
 
         function renderApp() {
             const container = document.getElementById('app-content');
+            const nav = document.getElementById('unit-nav');
+
             if (currentTab === 'words') {
-                const activeKey = Object.keys(wordData)[0];
-                container.innerHTML = wordData[activeKey].data.map((item, i) => `
-                    <div class="poke-card bg-white p-6 mb-4 flex justify-between items-center shadow-sm" id="card-${i}">
-                        <div onclick="speak('${item.word}')">
-                            <h2 class="text-4xl font-black text-blue-800 uppercase">${item.word}</h2>
+                container.innerHTML = (wordData[currentUnit]?.data || []).map((item, i) => `
+                    <div class="poke-card bg-white p-5 mb-4 flex justify-between items-center shadow-sm" id="card-${i}">
+                        <div onclick="speak('${item.word}')" class="flex-1">
+                            <h2 class="text-3xl font-black text-blue-800 uppercase tracking-tighter">${item.word}</h2>
+                            <p class="text-[10px] text-gray-400 font-bold italic">-${currentUnit} type</p>
                         </div>
-                        <div class="flex flex-col items-center">
-                            <div onclick="startEval('${item.word}', ${i})" class="mic-btn"></div>
-                            <p id="fb-${i}" class="text-[10px] font-bold mt-2 text-gray-300">Tap ball</p>
+                        <div class="flex flex-col items-center ml-4 mic-btn-container" onclick="startEval('${item.word}', ${i})">
+                            <div class="mic-btn"></div>
+                            <p id="fb-${i}" class="text-[10px] font-bold mt-2 text-gray-300">Tap to record</p>
                         </div>
                     </div>`).join('');
+                
+                nav.innerHTML = Object.keys(wordData).map(key => `
+                    <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border ${currentUnit === key ? 'bg-yellow-100 border-yellow-400' : 'border-transparent text-gray-400'}">
+                        <span class="text-xl">${wordData[key].icon}</span><span class="text-[10px] font-bold">${wordData[key].label}</span>
+                    </button>`).join('');
             } else {
                 container.innerHTML = sentenceData.map((s, i) => `
                     <div class="bg-white rounded-2xl p-5 mb-4 border-l-8 border-blue-500 shadow-sm" id="card-${i}">
-                        <p class="text-lg font-bold mb-4" onclick="speak('${s}')">${s}</p>
+                        <p class="text-lg font-bold text-slate-700 mb-4" onclick="speak('${s}')">${s}</p>
                         <div class="flex justify-between items-center border-t pt-3">
                             <p id="fb-${i}" class="text-xs font-bold text-gray-400 italic">Read the sentence</p>
-                            <div onclick="startEval('${s}', ${i})" class="mic-btn scale-75"></div>
+                            <div onclick="startEval('${s}', ${i})" class="mic-btn scale-75 mic-btn-container"></div>
                         </div>
                     </div>`).join('');
             }
         }
 
+        function switchUnit(key) { currentUnit = key; renderApp(); }
         function showAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
-        function hideAddModal() { document.getElementById('add-modal').classList.add('hidden'); }
+        function hideAddModal() { document.getElementById('add-modal').classList.add('hidden'); document.getElementById('input-content').value = ''; }
         
         renderApp();
     </script>
