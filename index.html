@@ -3,39 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics Master Mobile Pro</title>
+    <title>Phonics Master Mobile - Stable</title>
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .tab-active { color: #EE1515; border-bottom: 3px solid #EE1515; }
-        .poke-card { border: 6px solid #FFDE00; border-radius: 20px; transition: transform 0.1s; }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3B4CCA; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .mic-btn { width: 50px; height: 50px; background-image: url('https://img.icons8.com/color/96/pokeball.png'); background-size: contain; background-repeat: no-repeat; }
+        body { font-family: -apple-system, sans-serif; background: #fdf6e3; }
+        .tab-active { color: #EE1515; border-bottom: 4px solid #EE1515; }
+        .poke-card { border: 6px solid #FFDE00; border-radius: 20px; background: white; }
+        .mic-btn { 
+            width: 60px; height: 60px; 
+            background-image: url('https://img.icons8.com/color/96/pokeball.png'); 
+            background-size: contain; background-repeat: no-repeat;
+            cursor: pointer;
+        }
         .recording .mic-btn { animation: shake 0.5s infinite; }
-        @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        button:disabled { opacity: 0.5; }
     </style>
 </head>
-<body class="bg-slate-50 h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden">
 
     <div id="setup-overlay" class="fixed inset-0 bg-red-600 z-50 flex flex-col items-center justify-center text-white p-6">
-        <div class="text-8xl mb-6">🔴</div>
-        <h1 class="text-3xl font-black mb-8 text-yellow-400 text-center">POKÉ PHONICS MOBILE</h1>
-        <button onclick="initApp()" class="bg-white text-red-600 px-12 py-4 rounded-full font-black text-xl shadow-xl">START TRAINING</button>
+        <h1 class="text-3xl font-black mb-8 text-yellow-400">POKÉ PHONICS</h1>
+        <div class="mb-6 w-full max-w-xs">
+            <label class="block text-sm font-bold mb-2">選擇老師人聲：</label>
+            <select id="voice-select" class="w-full p-3 rounded-xl text-black font-bold">
+                <option value="en-US-AvaNeural">Ava (美語女聲 - 推薦)</option>
+                <option value="en-US-AndrewNeural">Andrew (美語男聲)</option>
+                <option value="en-GB-SoniaNeural">Sonia (英式女聲)</option>
+            </select>
+        </div>
+        <button onclick="initApp()" class="bg-white text-red-600 px-12 py-4 rounded-full font-black text-xl shadow-xl">開始測試</button>
     </div>
 
-    <header class="bg-white pt-12 px-6 shadow-sm border-b">
+    <header class="bg-white pt-12 px-6 shadow-md">
         <div class="flex justify-between items-center mb-4">
-            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Trainer Dashboard</h1>
-            <button onclick="showAddModal()" class="bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold text-xs">＋ ADD NEW</button>
+            <h1 class="text-xl font-bold">練習模式</h1>
+            <button onclick="showAddModal()" class="bg-red-500 text-white px-4 py-1 rounded-full font-bold text-xs">＋ 新增</button>
         </div>
         <div class="flex space-x-8 text-sm">
-            <button onclick="switchTab('words')" id="tab-words" class="pb-2 font-bold tab-active">WORDS</button>
-            <button onclick="switchTab('sentences')" id="tab-sentences" class="pb-2 font-bold text-gray-400">SENTENCES</button>
+            <button onclick="switchTab('words')" id="tab-words" class="pb-2 font-bold tab-active">單字 (小寫)</button>
+            <button onclick="switchTab('sentences')" id="tab-sentences" class="pb-2 font-bold text-gray-400">句子練習</button>
         </div>
     </header>
 
@@ -45,11 +53,11 @@
 
     <div id="add-modal" class="fixed inset-0 bg-black/60 z-40 hidden flex items-center justify-center p-6">
         <div class="bg-white rounded-3xl p-6 w-full">
-            <h3 class="font-bold mb-4">Add Content</h3>
-            <textarea id="input-content" class="w-full border p-3 rounded-xl mb-4 h-24" placeholder="Enter word or sentence (100 chars)..."></textarea>
+            <h3 class="font-bold mb-4">新增內容</h3>
+            <textarea id="input-content" class="w-full border p-3 rounded-xl mb-4 h-24" placeholder="請輸入英文..."></textarea>
             <div class="flex gap-3">
-                <button onclick="hideAddModal()" class="flex-1 py-3 text-gray-400 font-bold">Cancel</button>
-                <button onclick="processAdd()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold">Confirm</button>
+                <button onclick="hideAddModal()" class="flex-1 py-3 text-gray-400">取消</button>
+                <button onclick="processAdd()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold">確認</button>
             </div>
         </div>
     </div>
@@ -60,15 +68,16 @@
         let isRecording = false;
         let currentTab = 'words';
         let currentUnit = 'shortA';
+        let selectedVoice = "en-US-AvaNeural";
 
-        // 在地儲存資料
-        let wordData = JSON.parse(localStorage.getItem('local_poke_words')) || {
-            shortA: { label: 'Short A', icon: '🍎', data: [{word:'Cat'}] },
-            longA: { label: 'Long A', icon: '🍰', data: [{word:'Cake'}] }
+        let wordData = JSON.parse(localStorage.getItem('local_words_v2')) || {
+            shortA: { label: 'Short A', icon: '🍎', data: [{word:'cat'}, {word:'bag'}] },
+            longA: { label: 'Long A', icon: '🍰', data: [{word:'cake'}, {word:'lake'}] }
         };
-        let sentenceData = JSON.parse(localStorage.getItem('local_poke_sentences')) || ["The cat sat on the mat."];
+        let sentenceData = JSON.parse(localStorage.getItem('local_sentences_v2')) || ["the cat sat on the mat."];
 
         function initApp() {
+            selectedVoice = document.getElementById('voice-select').value;
             navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
                 document.getElementById('setup-overlay').style.display = 'none';
                 renderApp();
@@ -83,26 +92,18 @@
             renderApp();
         }
 
-        // --- AI 自動歸類邏輯 ---
-        function autoCategorize(word) {
-            word = word.toLowerCase();
-            if (word.endsWith('e') || word.includes('ai') || word.includes('ay')) return 'longA';
-            if (word.includes('ee') || word.includes('ea')) return 'longE';
-            return 'shortA';
-        }
-
         function processAdd() {
-            const input = document.getElementById('input-content').value.trim();
-            if (!input || input.length > 100) return alert("100 characters max!");
+            const input = document.getElementById('input-content').value.trim().toLowerCase();
+            if (!input) return;
 
             if (currentTab === 'words') {
-                const cat = autoCategorize(input);
+                const cat = input.endsWith('e') ? 'longA' : 'shortA';
                 if(!wordData[cat]) wordData[cat] = { label: cat, icon: '🆕', data: [] };
                 wordData[cat].data.push({ word: input });
-                localStorage.setItem('local_poke_words', JSON.stringify(wordData));
+                localStorage.setItem('local_words_v2', JSON.stringify(wordData));
             } else {
                 sentenceData.push(input);
-                localStorage.setItem('local_poke_sentences', JSON.stringify(sentenceData));
+                localStorage.setItem('local_sentences_v2', JSON.stringify(sentenceData));
             }
             hideAddModal();
             renderApp();
@@ -111,26 +112,19 @@
         function speak(text) {
             if(isRecording) return;
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
-            speechConfig.speechSynthesisVoiceName = "en-US-AvaNeural";
+            speechConfig.speechSynthesisVoiceName = selectedVoice;
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-            synthesizer.speakTextAsync(text, r => synthesizer.close());
+            synthesizer.speakTextAsync(text, r => synthesizer.close(), e => console.error(e));
         }
 
         async function startEval(text, index) {
             if(isRecording) return;
             isRecording = true;
-            document.querySelectorAll('.mic-btn-container').forEach(el => el.style.pointerEvents = 'none');
-
-            const fb = document.getElementById(`fb-${index}`);
-            const card = document.getElementById(`card-${index}`);
-            card.classList.add('recording');
             
-            let timeLeft = 5;
-            const timer = setInterval(() => {
-                timeLeft--;
-                fb.innerText = `Listening... (${timeLeft}s)`;
-                if(timeLeft <= 0) clearInterval(timer);
-            }, 1000);
+            const card = document.getElementById(`card-${index}`);
+            const fb = document.getElementById(`fb-${index}`);
+            card.classList.add('recording');
+            fb.innerText = "正在聽... (5s)";
 
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
@@ -139,14 +133,11 @@
             pronConfig.applyTo(recognizer);
 
             recognizer.recognizeOnceAsync(result => {
-                clearInterval(timer);
                 const score = SpeechSDK.PronunciationAssessmentResult.fromResult(result).accuracyScore;
                 card.classList.remove('recording');
-                fb.innerText = score >= 80 ? "EXCELLENT! 🌟" : "TRY AGAIN! 💢";
-                fb.className = score >= 80 ? "text-[10px] font-bold mt-2 text-green-600" : "text-[10px] font-bold mt-2 text-red-500";
-                
+                fb.innerText = score >= 80 ? "太棒了！🌟" : "再試一次！";
+                fb.className = score >= 80 ? "text-xs font-bold mt-2 text-green-600" : "text-xs font-bold mt-2 text-red-500";
                 isRecording = false;
-                document.querySelectorAll('.mic-btn-container').forEach(el => el.style.pointerEvents = 'auto');
                 recognizer.close();
             });
         }
@@ -157,28 +148,29 @@
 
             if (currentTab === 'words') {
                 container.innerHTML = (wordData[currentUnit]?.data || []).map((item, i) => `
-                    <div class="poke-card bg-white p-5 mb-4 flex justify-between items-center shadow-sm" id="card-${i}">
+                    <div class="poke-card p-6 mb-4 flex justify-between items-center shadow-sm" id="card-${i}">
                         <div onclick="speak('${item.word}')" class="flex-1">
-                            <h2 class="text-3xl font-black text-blue-800 uppercase tracking-tighter">${item.word}</h2>
-                            <p class="text-[10px] text-gray-400 font-bold italic">-${currentUnit} type</p>
+                            <h2 class="text-4xl font-black text-blue-900">${item.word.toLowerCase()}</h2>
+                            <p class="text-[10px] text-gray-400">點擊單字聽發音</p>
                         </div>
-                        <div class="flex flex-col items-center ml-4 mic-btn-container" onclick="startEval('${item.word}', ${i})">
+                        <div class="flex flex-col items-center ml-4" onclick="startEval('${item.word}', ${i})">
                             <div class="mic-btn"></div>
-                            <p id="fb-${i}" class="text-[10px] font-bold mt-2 text-gray-300">Tap to record</p>
+                            <p id="fb-${i}" class="text-[10px] font-bold mt-2 text-gray-300">按球錄音</p>
                         </div>
                     </div>`).join('');
                 
                 nav.innerHTML = Object.keys(wordData).map(key => `
-                    <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border ${currentUnit === key ? 'bg-yellow-100 border-yellow-400' : 'border-transparent text-gray-400'}">
-                        <span class="text-xl">${wordData[key].icon}</span><span class="text-[10px] font-bold">${wordData[key].label}</span>
+                    <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-6 py-2 rounded-2xl border ${currentUnit === key ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-transparent text-gray-400 shadow-sm'}">
+                        <span class="text-xl">${wordData[key].icon}</span>
+                        <span class="text-[10px] font-bold">${wordData[key].label}</span>
                     </button>`).join('');
             } else {
                 container.innerHTML = sentenceData.map((s, i) => `
-                    <div class="bg-white rounded-2xl p-5 mb-4 border-l-8 border-blue-500 shadow-sm" id="card-${i}">
-                        <p class="text-lg font-bold text-slate-700 mb-4" onclick="speak('${s}')">${s}</p>
-                        <div class="flex justify-between items-center border-t pt-3">
-                            <p id="fb-${i}" class="text-xs font-bold text-gray-400 italic">Read the sentence</p>
-                            <div onclick="startEval('${s}', ${i})" class="mic-btn scale-75 mic-btn-container"></div>
+                    <div class="bg-white rounded-3xl p-6 mb-4 border-l-8 border-blue-500 shadow-md" id="card-${i}">
+                        <p class="text-xl font-bold text-slate-800 mb-6" onclick="speak('${s}')">${s.toLowerCase()}</p>
+                        <div class="flex justify-between items-center border-t pt-4">
+                            <p id="fb-${i}" class="text-xs font-bold text-gray-400">點擊句子播放 / 按球挑戰</p>
+                            <div onclick="startEval('${s}', ${i})" class="mic-btn scale-90"></div>
                         </div>
                     </div>`).join('');
             }
