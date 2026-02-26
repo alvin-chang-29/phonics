@@ -2,7 +2,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics Master AI Pro</title>
+    <title>Phonics Master AI Pro - Fix</title>
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -20,7 +20,6 @@
     <div id="setup-overlay" class="fixed inset-0 bg-amber-500 z-50 flex flex-col items-center justify-center p-10 text-white text-center">
         <div class="text-6xl mb-6">🎙️</div>
         <h2 class="text-3xl font-bold mb-4">準備好開始了嗎？</h2>
-        <p class="mb-8 opacity-90 text-sm">點擊按鈕啟用 Ava 老師的真人語音<br>並開啟發音評測功能</p>
         <button onclick="initApp()" class="bg-white text-amber-600 px-10 py-4 rounded-full font-black text-xl shadow-2xl active:scale-95 transition-transform">
             啟動學習系統
         </button>
@@ -36,15 +35,12 @@
         </div>
         <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
             <button onclick="changeVoice('en-US-AvaNeural')" id="v-en-US-AvaNeural" class="voice-btn voice-btn-active">Ava (Default)</button>
-            <button onclick="changeVoice('en-US-JennyNeural')" id="v-en-US-JennyNeural" class="voice-btn">Jenny</button>
-            <button onclick="changeVoice('en-US-GuyNeural')" id="v-en-US-GuyNeural" class="voice-btn">Guy</button>
             <button onclick="changeVoice('en-US-AndrewNeural')" id="v-en-US-AndrewNeural" class="voice-btn">Andrew</button>
             <button onclick="changeVoice('en-GB-EmmaNeural')" id="v-en-GB-EmmaNeural" class="voice-btn">Emma (UK)</button>
         </div>
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar" id="app-content"></main>
-
     <div class="bg-white border-t p-4 flex gap-3 overflow-x-auto no-scrollbar" id="nav-bar"></div>
 
     <script>
@@ -54,27 +50,25 @@
         let isRecording = false;
 
         const wordData = {
-            shortA: { label: 'Short A', icon: '🍎', data: [{word:'Ant',sound:'ant'},{word:'Cat',sound:'at'},{word:'Bag',sound:'ag'},{word:'Cap',sound:'ap'},{word:'Sad',sound:'ad'},{word:'Van',sound:'an'},{word:'Bat',sound:'at'},{word:'Rat',sound:'at'},{word:'Pan',sound:'an'},{word:'Can',sound:'an'}]},
-            shortE: { label: 'Short E', icon: '🥚', data: [{word:'Bed',sound:'ed'},{word:'Jet',sound:'et'},{word:'Pen',sound:'en'},{word:'Red',sound:'ed'},{word:'Net',sound:'et'},{word:'Hen',sound:'en'},{word:'Egg',sound:'egg'}]},
-            shortI: { label: 'Short I', icon: '🐷', data: [{word:'Pin',sound:'in'},{word:'Lid',sound:'id'},{word:'Sit',sound:'it'},{word:'Pig',sound:'ig'},{word:'Wig',sound:'ig'},{word:'Bin',sound:'in'},{word:'Six',sound:'ix'}]},
-            shortO: { label: 'Short O', icon: '🐙', data: [{word:'Pot',sound:'ot'},{word:'Hot',sound:'ot'},{word:'Dot',sound:'ot'},{word:'Dog',sound:'og'},{word:'Box',sound:'ox'},{word:'Fox',sound:'ox'},{word:'Top',sound:'op'}]},
-            shortU: { label: 'Short U', icon: '☂️', data: [{word:'Bus',sound:'us'},{word:'Sun',sound:'un'},{word:'Cup',sound:'up'},{word:'Bug',sound:'ug'},{word:'Nut',sound:'ut'},{word:'Rug',sound:'ug'},{word:'Tub',sound:'ub'}]},
-            longA: { label: 'Long A', icon: '🍰', data: [{word:'Cake',sound:'a-e'},{word:'Rain',sound:'ai'},{word:'Day',sound:'ay'},{word:'Lake',sound:'a-e'},{word:'Gate',sound:'a-e'}]},
-            longE: { label: 'Long E', icon: '🍃', data: [{word:'Bee',sound:'ee'},{word:'Leaf',sound:'ea'},{word:'Tree',sound:'ee'},{word:'Seal',sound:'ea'},{word:'Key',sound:'ey'}]},
-            longI: { label: 'Long I', icon: '🚲', data: [{word:'Bike',sound:'i-e'},{word:'Kite',sound:'i-e'},{word:'Fly',sound:'y'},{word:'Pie',sound:'ie'},{word:'Ice',sound:'i-e'}]},
-            longO: { label: 'Long O', icon: '🌊', data: [{word:'Rope',sound:'o-e'},{word:'Boat',sound:'oa'},{word:'Coat',sound:'oa'},{word:'Rose',sound:'o-e'},{word:'Snow',sound:'ow'}]},
-            longU: { label: 'Long U', icon: '🦄', data: [{word:'Mute',sound:'u-e'},{word:'Blue',sound:'ue'},{word:'Glue',sound:'ue'},{word:'Cube',sound:'u-e'},{word:'Tube',sound:'u-e'}]}
+            shortA: { label: 'Short A', icon: '🍎', data: [{word:'ant',sound:'ant'},{word:'cat',sound:'at'},{word:'bag',sound:'ag'},{word:'cap',sound:'ap'},{word:'sad',sound:'ad'},{word:'van',sound:'an'},{word:'bat',sound:'at'},{word:'rat',sound:'at'},{word:'pan',sound:'an'},{word:'can',sound:'an'}]},
+            shortE: { label: 'Short E', icon: '🥚', data: [{word:'bed',sound:'ed'},{word:'jet',sound:'et'},{word:'pen',sound:'en'},{word:'red',sound:'ed'},{word:'net',sound:'et'},{word:'hen',sound:'en'},{word:'egg',sound:'egg'}]},
+            shortI: { label: 'Short I', icon: '🐷', data: [{word:'pin',sound:'in'},{word:'lid',sound:'id'},{word:'sit',sound:'it'},{word:'pig',sound:'ig'},{word:'wig',sound:'ig'},{word:'bin',sound:'in'},{word:'six',sound:'ix'}]},
+            shortO: { label: 'Short O', icon: '🐙', data: [{word:'pot',sound:'ot'},{word:'hot',sound:'ot'},{word:'dot',sound:'ot'},{word:'dog',sound:'og'},{word:'box',sound:'ox'},{word:'fox',sound:'ox'},{word:'top',sound:'op'}]},
+            shortU: { label: 'Short U', icon: '☂️', data: [{word:'bus',sound:'us'},{word:'sun',sound:'un'},{word:'cup',sound:'up'},{word:'bug',sound:'ug'},{word:'nut',sound:'ut'},{word:'rug',sound:'ug'},{word:'tub',sound:'ub'}]},
+            longA: { label: 'Long A', icon: '🍰', data: [{word:'cake',sound:'a-e'},{word:'rain',sound:'ai'},{word:'day',sound:'ay'},{word:'lake',sound:'a-e'},{word:'gate',sound:'a-e'}]},
+            longE: { label: 'Long E', icon: '🍃', data: [{word:'bee',sound:'ee'},{word:'leaf',sound:'ea'},{word:'tree',sound:'ee'},{word:'seal',sound:'ea'},{word:'key',sound:'ey'}]},
+            longI: { label: 'Long I', icon: '🚲', data: [{word:'bike',sound:'i-e'},{word:'kite',sound:'i-e'},{word:'fly',sound:'y'},{word:'pie',sound:'ie'},{word:'ice',sound:'i-e'}]},
+            longO: { label: 'Long O', icon: '🌊', data: [{word:'rope',sound:'o-e'},{word:'boat',sound:'oa'},{word:'coat',sound:'oa'},{word:'rose',sound:'o-e'},{word:'snow',sound:'ow'}]},
+            longU: { label: 'Long U', icon: '🦄', data: [{word:'mute',sound:'u-e'},{word:'blue',sound:'ue'},{word:'glue',sound:'ue'},{word:'cube',sound:'u-e'},{word:'tube',sound:'u-e'}]}
         };
 
         let currentKey = 'shortA';
 
         function initApp() {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(() => {
-                    document.getElementById('setup-overlay').style.display = 'none';
-                    renderApp();
-                })
-                .catch(err => alert("請允許麥克風權限以使用 AI 功能"));
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
+                document.getElementById('setup-overlay').style.display = 'none';
+                renderApp();
+            }).catch(err => alert("請允許麥克風權限以使用評測功能"));
         }
 
         function playSound(text) {
@@ -82,7 +76,7 @@
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
             speechConfig.speechSynthesisVoiceName = currentVoice;
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-            synthesizer.speakTextAsync(text, r => synthesizer.close(), e => console.error(e));
+            synthesizer.speakTextAsync(text, r => synthesizer.close());
         }
 
         function changeVoice(voiceName) {
@@ -97,47 +91,38 @@
             document.querySelectorAll('.mic-btn').forEach(btn => btn.disabled = true);
 
             const statusIcon = document.getElementById(`status-${index}`);
-            const feedbackText = document.getElementById(`feedback-${index}`);
+            const fb = document.getElementById(`feedback-${index}`);
             let timeLeft = 5;
 
             const timer = setInterval(() => {
                 timeLeft--;
-                if(timeLeft > 0) feedbackText.innerText = `Listening... (${timeLeft}s)`;
+                if(timeLeft > 0) fb.innerText = `Listening... (${timeLeft}s)`;
                 if(timeLeft <= 0) clearInterval(timer);
             }, 1000);
 
             statusIcon.innerHTML = '<div class="spinner"></div>';
-            feedbackText.innerText = `Listening... (${timeLeft}s)`;
-            feedbackText.className = "text-[10px] text-amber-500 font-bold mt-2";
+            fb.innerText = `Listening... (${timeLeft}s)`;
+            fb.className = "text-[10px] text-amber-500 font-bold mt-2";
 
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(targetWord, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(targetWord, 100, 0);
             const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
-            const timeoutHandle = setTimeout(() => {
-                recognizer.stopContinuousRecognitionAsync(() => {
-                    recognizer.close();
-                    resetMicState(index, "Time out! Try again.");
-                });
-            }, 5500);
-
             recognizer.recognizeOnceAsync(result => {
-                clearTimeout(timeoutHandle);
                 clearInterval(timer);
-                
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     const score = SpeechSDK.PronunciationAssessmentResult.fromResult(result).accuracyScore;
                     if (score >= 80) {
                         statusIcon.innerHTML = '✅';
-                        feedbackText.innerText = "Excellent!";
-                        feedbackText.className = "text-[10px] text-green-600 font-bold mt-2";
+                        fb.innerText = "Excellent!";
+                        fb.className = "text-[10px] text-green-600 font-bold mt-2";
                     } else {
                         resetMicState(index, "Try again!");
                     }
                 } else {
-                    resetMicState(index, "Not heard. Try again!");
+                    resetMicState(index, "Not heard!");
                 }
                 recognizer.close();
                 isRecording = false;
@@ -150,8 +135,6 @@
             const fb = document.getElementById(`feedback-${index}`);
             fb.innerText = msg;
             fb.className = "text-[10px] text-orange-500 font-bold mt-2";
-            isRecording = false;
-            document.querySelectorAll('.mic-btn').forEach(btn => btn.disabled = false);
         }
 
         function renderApp() {
@@ -159,11 +142,11 @@
             container.innerHTML = wordData[currentKey].data.map((item, i) => `
                 <div class="bg-white rounded-2xl p-4 shadow-sm border-l-4 border-amber-400 flex justify-between items-center card">
                     <div class="flex-1" onclick="playSound('${item.word}')">
-                        <h2 class="text-3xl font-black text-slate-800">${item.word}</h2>
+                        <h2 class="text-3xl font-black text-slate-800">${item.word.toLowerCase()}</h2>
                         <p class="text-gray-400 text-xs italic">-${item.sound} family</p>
                     </div>
                     <div class="flex flex-col items-center pl-4 border-l min-w-[100px]">
-                        <button id="status-${i}" onclick="startAzureEval('${item.word}', i)" class="mic-btn bg-slate-50 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-inner active:bg-amber-100">🎤</button>
+                        <button id="status-${i}" onclick="startAzureEval('${item.word}', ${i})" class="mic-btn bg-slate-50 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-inner active:bg-amber-100">🎤</button>
                         <div id="feedback-${i}" class="text-[10px] text-gray-300 font-bold mt-2 text-center">Tap to practice</div>
                     </div>
                 </div>`).join('');
