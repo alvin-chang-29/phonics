@@ -2,143 +2,108 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phonics Hero Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phonics Hero Pro - iPad Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://aka.ms/csspeechjs-browser-sdk"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
-        body { font-family: 'Fredoka', sans-serif; }
+        body { font-family: 'Fredoka', sans-serif; -webkit-tap-highlight-color: transparent; }
         .sidebar-item-active { background-color: #E64A4A !important; color: white !important; }
         .card-shadow { box-shadow: 0 8px 0px #E5E5E5; }
         .lowercase { text-transform: lowercase; }
-        /* 滾動條美化 */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+        /* 滾動條隱藏但保持功能 (iPad 簡約風) */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex bg-[#FDF4D0]">
 
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-90 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
-        <h1 class="text-5xl mb-4 font-black text-yellow-400 italic">PHONICS HERO</h1>
-        <button onclick="initApp()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-12 rounded-full text-2xl shadow-2xl transition-all active:scale-95">
-            START TRAINING
+        <div class="w-24 h-24 mb-6 bg-red-600 rounded-full border-8 border-white animate-pulse flex items-center justify-center text-4xl">GO</div>
+        <h1 class="text-5xl mb-4 font-black text-yellow-400 italic font-sans">PHONICS HERO</h1>
+        <p class="mb-8 text-gray-400">請點擊下方按鈕啟動練習系統</p>
+        <button onclick="initApp()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-16 rounded-full text-2xl shadow-2xl transition-all active:scale-95">
+            READY!
         </button>
     </div>
 
     <aside class="w-72 bg-[#3E3E3E] flex flex-col shadow-2xl z-20">
         <div class="p-8 flex items-center gap-4 border-b border-gray-600">
-            <div class="w-12 h-12 bg-yellow-400 rounded-full border-4 border-white flex items-center justify-center text-2xl">⚡</div>
-            <span class="text-white font-black text-xl tracking-tighter">TRAINER HUB</span>
+            <div class="w-10 h-10 bg-yellow-400 rounded-full border-4 border-white flex items-center justify-center text-xl">⚡</div>
+            <span class="text-white font-black text-lg tracking-tighter uppercase">Trainer Hub</span>
         </div>
 
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <div class="text-gray-500 text-[10px] font-black uppercase mb-4 px-4 tracking-[0.2em]">Lesson Plan</div>
-            
-            <button onclick="changeCategory('short-a')" id="btn-short-a" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition sidebar-item-active">
+            <button onclick="changeCategory('short-a')" id="btn-short-a" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold sidebar-item-active">
                 <span class="text-2xl">🍎</span> Short A
             </button>
-            <button onclick="changeCategory('short-e')" id="btn-short-e" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+            <button onclick="changeCategory('short-e')" id="btn-short-e" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">🍳</span> Short E
             </button>
-            <button onclick="changeCategory('short-i')" id="btn-short-i" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+            <button onclick="changeCategory('short-i')" id="btn-short-i" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">🧊</span> Short I
             </button>
-            <button onclick="changeCategory('short-o')" id="btn-short-o" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+            <button onclick="changeCategory('short-o')" id="btn-short-o" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">🐙</span> Short O
             </button>
-            <button onclick="changeCategory('short-u')" id="btn-short-u" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+            <button onclick="changeCategory('short-u')" id="btn-short-u" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">☔</span> Short U
             </button>
-            <div class="h-px bg-gray-600 my-4"></div>
-            <button onclick="changeCategory('long-a')" id="btn-long-a" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
-                <span class="text-2xl">🍰</span> Long A
-            </button>
         </nav>
-
-        <div class="p-6">
-            <button onclick="toggleBatchModal()" class="w-full py-4 rounded-2xl bg-white bg-opacity-10 text-white font-black border-2 border-dashed border-gray-500 hover:bg-opacity-20 transition">
-                + BATCH ADD
-            </button>
-        </div>
     </aside>
 
-    <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="p-8 flex justify-between items-center bg-white bg-opacity-50 backdrop-blur-md">
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+        <header class="p-8 flex justify-between items-center bg-white bg-opacity-30">
             <div>
                 <h2 id="cat-title" class="text-4xl font-black text-[#3E3E3E] uppercase italic leading-none">Short A</h2>
-                <p class="text-gray-500 font-bold text-sm mt-2">Master the basic vowel sounds</p>
             </div>
-            <div class="flex gap-3">
-                <div class="bg-white px-6 py-2 rounded-full shadow-sm border border-gray-200 font-bold text-red-600">
-                    Accuracy: <span id="global-score">--</span>
-                </div>
+            <div id="global-score-badge" class="hidden bg-green-500 text-white px-6 py-2 rounded-full font-black animate-bounce shadow-lg">
+                Awesome! <span id="global-score">0</span>
             </div>
         </header>
+
+        <div id="recording-indicator" class="hidden absolute inset-0 z-50 bg-white bg-opacity-90 flex flex-col items-center justify-center">
+            <div id="countdown-text" class="text-9xl font-black text-red-600 mb-4 italic">4</div>
+            <p class="text-2xl font-black text-gray-800 uppercase tracking-widest animate-pulse">Listening...</p>
+        </div>
 
         <div id="card-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 items-start">
             </div>
     </main>
 
-    <div id="batch-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[110] hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-[40px] p-10 w-full max-w-lg border-[12px] border-yellow-400 shadow-2xl">
-            <h3 class="text-3xl font-black text-gray-800 mb-6 flex items-center gap-3">
-                <span>🎒</span> BATCH IMPORT
-            </h3>
-            <textarea id="batch-text" rows="6" placeholder="貼上單字，用逗號隔開 (如: cat, bat, mat...)" class="w-full p-4 border-4 border-gray-100 rounded-3xl lowercase focus:border-blue-400 outline-none mb-6 text-lg"></textarea>
-            <div class="flex gap-4">
-                <button onclick="processBatch()" class="flex-1 bg-red-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg active:scale-95 transition">IMPORT NOW</button>
-                <button onclick="toggleBatchModal()" class="px-8 bg-gray-100 text-gray-500 rounded-3xl font-bold">CLOSE</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // --- 設定 ---
         const AZURE_KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
         const REGION = "eastasia";
         
-        // --- 預設資料 (照片中的單字) ---
+        // 預設單字庫
         const initialWords = [
             { text: 'cat', category: 'short-a' }, { text: 'bat', category: 'short-a' }, { text: 'hat', category: 'short-a' }, { text: 'mat', category: 'short-a' },
             { text: 'hen', category: 'short-e' }, { text: 'pen', category: 'short-e' }, { text: 'ten', category: 'short-e' }, { text: 'red', category: 'short-e' },
             { text: 'pig', category: 'short-i' }, { text: 'wig', category: 'short-i' }, { text: 'bin', category: 'short-i' }, { text: 'sit', category: 'short-i' },
             { text: 'hot', category: 'short-o' }, { text: 'pot', category: 'short-o' }, { text: 'dog', category: 'short-o' }, { text: 'log', category: 'short-o' },
-            { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' },
-            { text: 'cake', category: 'long-a' }, { text: 'lake', category: 'long-a' }, { text: 'rain', category: 'long-a' }, { text: 'day', category: 'long-a' }
+            { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' }
         ];
 
-        let items = JSON.parse(localStorage.getItem('phonics_pro_v1')) || initialWords;
+        let items = JSON.parse(localStorage.getItem('phonics_ipad_v2')) || initialWords;
         let currentCategory = 'short-a';
+        let speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
+        speechConfig.speechSynthesisVoiceName = "en-US-AvaNeural"; // 設定高品質真人女聲
 
         function initApp() {
-            document.getElementById('overlay').classList.add('hidden');
-            renderCards();
+            // 在點擊時主動請求麥克風權限 (iPad 關鍵)
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(() => {
+                    document.getElementById('overlay').classList.add('hidden');
+                    renderCards();
+                })
+                .catch(err => alert("請開啟麥克風權限以進行練習"));
         }
 
-        // --- 自動歸類邏輯 ---
-        function autoCategorize(text) {
-            const val = text.toLowerCase().trim();
-            if (val.match(/a[a-z]e$/) || val.includes('ai') || val.includes('ay')) return 'long-a';
-            if (val.includes('ee') || val.includes('ea')) return 'long-e';
-            if (val.match(/i[a-z]e$/) || val.includes('igh')) return 'long-i';
-            if (val.includes('o') && val.length <= 3) return 'short-o';
-            if (val.includes('u') && val.length <= 3) return 'short-u';
-            if (val.includes('i') && val.length <= 3) return 'short-i';
-            if (val.includes('e') && val.length <= 3) return 'short-e';
-            return 'short-a';
-        }
-
-        // --- 介面渲染 ---
         function changeCategory(cat) {
             currentCategory = cat;
             document.getElementById('cat-title').innerText = cat.replace('-', ' ');
-            
-            // 更新 Sidebar UI
             document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('sidebar-item-active'));
             document.getElementById(`btn-${cat}`).classList.add('sidebar-item-active');
-            
             renderCards();
         }
 
@@ -147,53 +112,56 @@
             const filtered = items.filter(i => i.category === currentCategory);
             
             grid.innerHTML = filtered.map(item => `
-                <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-100 flex flex-col items-center group hover:-translate-y-2 transition-all duration-300">
-                    <div class="text-gray-300 self-end font-black text-xs uppercase tracking-widest mb-2">${currentCategory}</div>
+                <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-100 flex flex-col items-center">
                     <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10 tracking-tight">${item.text}</h3>
-                    
                     <div class="w-full flex gap-3">
-                        <button onclick="runSpeech('${item.text}', this)" class="flex-1 bg-[#E64A4A] text-white py-4 rounded-3xl font-black shadow-lg hover:bg-red-700 transition flex items-center justify-center gap-2">
-                            <span class="mic-icon text-xl">🎤</span> <span>練習</span>
+                        <button onclick="startTraining('${item.text}')" class="flex-1 bg-[#E64A4A] text-white py-5 rounded-3xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
+                            <span class="text-2xl">🎤</span> 錄音練習
                         </button>
-                        <button onclick="speak('${item.text}')" class="w-16 h-16 bg-gray-100 rounded-3xl flex items-center justify-center text-2xl hover:bg-gray-200 transition">
+                        <button onclick="playTTS('${item.text}')" class="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center text-3xl active:bg-gray-200">
                             🔊
                         </button>
                     </div>
-                    <div class="score-box mt-4 font-black text-2xl text-green-600 hidden">0</div>
                 </div>
             `).join('');
         }
 
-        // --- 功能邏輯 ---
-        function toggleBatchModal() {
-            document.getElementById('batch-modal').classList.toggle('hidden');
+        // --- 真人發音 (Azure TTS) ---
+        function playTTS(text) {
+            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            synthesizer.speakTextAsync(text, 
+                result => {
+                    if (result) synthesizer.close();
+                },
+                error => {
+                    console.error(error);
+                    synthesizer.close();
+                }
+            );
         }
 
-        function processBatch() {
-            const text = document.getElementById('batch-text').value;
-            if (!text) return;
-            const newWords = text.split(/[,\n\r]+/).map(w => w.trim()).filter(w => w);
+        // --- 核心錄音評測 (4秒倒數) ---
+        async function startTraining(refText) {
+            const indicator = document.getElementById('recording-indicator');
+            const countdownText = document.getElementById('countdown-text');
             
-            newWords.forEach(w => {
-                items.push({ text: w.toLowerCase(), category: autoCategorize(w) });
-            });
+            indicator.classList.remove('hidden');
+            let timer = 4;
+            countdownText.innerText = timer;
 
-            localStorage.setItem('phonics_pro_v1', JSON.stringify(items));
-            document.getElementById('batch-text').value = '';
-            toggleBatchModal();
-            renderCards();
+            const interval = setInterval(() => {
+                timer--;
+                if (timer > 0) {
+                    countdownText.innerText = timer;
+                } else {
+                    clearInterval(interval);
+                    indicator.classList.add('hidden');
+                    runAzureAssessment(refText);
+                }
+            }, 1000);
         }
 
-        function speak(text) {
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'en-US';
-            msg.rate = 0.8;
-            window.speechSynthesis.speak(msg);
-        }
-
-        // --- Azure Speech 評測 ---
-        function runSpeech(refText, btn) {
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
+        function runAzureAssessment(refText) {
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
                 refText, 
@@ -204,22 +172,21 @@
             const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
-            btn.classList.add('animate-pulse', 'bg-gray-800');
-            btn.querySelector('.mic-icon').innerText = "⏳";
-
             recognizer.recognizeOnceAsync(result => {
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                const score = Math.round(res.accuracyScore);
-                
-                const scoreBox = btn.parentElement.nextElementSibling;
-                scoreBox.innerText = `Score: ${score}`;
-                scoreBox.classList.remove('hidden');
-                document.getElementById('global-score').innerText = score;
-
-                btn.classList.remove('animate-pulse', 'bg-gray-800');
-                btn.querySelector('.mic-icon').innerText = "🎤";
+                if (res) {
+                    const score = Math.round(res.accuracyScore);
+                    showScore(score);
+                }
                 recognizer.close();
             });
+        }
+
+        function showScore(score) {
+            const badge = document.getElementById('global-score-badge');
+            document.getElementById('global-score').innerText = score;
+            badge.classList.remove('hidden');
+            setTimeout(() => badge.classList.add('hidden'), 3000);
         }
     </script>
 </body>
