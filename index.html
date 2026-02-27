@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Phonics Hero Pro - iPad Edition</title>
+    <title>Phonics Hero iPad Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://aka.ms/csspeechjs-browser-sdk"></script>
     <style>
@@ -12,25 +12,30 @@
         .sidebar-item-active { background-color: #E64A4A !important; color: white !important; }
         .card-shadow { box-shadow: 0 8px 0px #E5E5E5; }
         .lowercase { text-transform: lowercase; }
-        /* 滾動條隱藏但保持功能 (iPad 簡約風) */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex bg-[#FDF4D0]">
 
-    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-90 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
-        <div class="w-24 h-24 mb-6 bg-red-600 rounded-full border-8 border-white animate-pulse flex items-center justify-center text-4xl">GO</div>
-        <h1 class="text-5xl mb-4 font-black text-yellow-400 italic font-sans">PHONICS HERO</h1>
-        <p class="mb-8 text-gray-400">請點擊下方按鈕啟動練習系統</p>
-        <button onclick="initApp()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-16 rounded-full text-2xl shadow-2xl transition-all active:scale-95">
-            READY!
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
+        <h1 class="text-5xl mb-10 font-black text-yellow-400 italic">PHONICS HERO</h1>
+        <button onclick="unlockAndStart()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-16 rounded-full text-3xl shadow-2xl active:scale-95 transition-all">
+            READY TO TRAIN!
         </button>
     </div>
 
     <aside class="w-72 bg-[#3E3E3E] flex flex-col shadow-2xl z-20">
-        <div class="p-8 flex items-center gap-4 border-b border-gray-600">
-            <div class="w-10 h-10 bg-yellow-400 rounded-full border-4 border-white flex items-center justify-center text-xl">⚡</div>
-            <span class="text-white font-black text-lg tracking-tighter uppercase">Trainer Hub</span>
+        <div class="p-8 border-b border-gray-600">
+            <span class="text-white font-black text-xl italic uppercase">Trainer Hub</span>
+            <div class="mt-4">
+                <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Voice Selection</label>
+                <select id="voice-select" onchange="updateVoice()" class="w-full bg-gray-800 text-white text-sm p-2 rounded-lg outline-none border border-gray-600">
+                    <option value="en-US-AvaNeural">Ava (Young Lady)</option>
+                    <option value="en-US-AndrewNeural">Andrew (Gentle Man)</option>
+                    <option value="en-US-EmmaNeural">Emma (Sweet)</option>
+                    <option value="en-US-BrianNeural">Brian (Clear)</option>
+                    <option value="en-GB-SoniaNeural">Sonia (British)</option>
+                </select>
+            </div>
         </div>
 
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -53,21 +58,19 @@
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden relative">
-        <header class="p-8 flex justify-between items-center bg-white bg-opacity-30">
-            <div>
-                <h2 id="cat-title" class="text-4xl font-black text-[#3E3E3E] uppercase italic leading-none">Short A</h2>
-            </div>
-            <div id="global-score-badge" class="hidden bg-green-500 text-white px-6 py-2 rounded-full font-black animate-bounce shadow-lg">
-                Awesome! <span id="global-score">0</span>
+        <header class="p-8 flex justify-between items-center">
+            <h2 id="cat-title" class="text-4xl font-black text-[#3E3E3E] uppercase italic">Short A</h2>
+            <div id="score-badge" class="hidden bg-green-500 text-white px-8 py-3 rounded-full font-black animate-bounce shadow-xl text-xl">
+                Score: <span id="current-score">0</span>
             </div>
         </header>
 
-        <div id="recording-indicator" class="hidden absolute inset-0 z-50 bg-white bg-opacity-90 flex flex-col items-center justify-center">
-            <div id="countdown-text" class="text-9xl font-black text-red-600 mb-4 italic">4</div>
-            <p class="text-2xl font-black text-gray-800 uppercase tracking-widest animate-pulse">Listening...</p>
+        <div id="countdown-overlay" class="hidden absolute inset-0 bg-white bg-opacity-95 z-50 flex flex-col items-center justify-center">
+            <div id="countdown-num" class="text-[12rem] font-black text-red-600 leading-none mb-4 italic">4</div>
+            <p class="text-3xl font-bold text-gray-400 uppercase tracking-widest">Prepare to speak...</p>
         </div>
 
-        <div id="card-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 items-start">
+        <div id="card-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
             </div>
     </main>
 
@@ -75,7 +78,6 @@
         const AZURE_KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
         const REGION = "eastasia";
         
-        // 預設單字庫
         const initialWords = [
             { text: 'cat', category: 'short-a' }, { text: 'bat', category: 'short-a' }, { text: 'hat', category: 'short-a' }, { text: 'mat', category: 'short-a' },
             { text: 'hen', category: 'short-e' }, { text: 'pen', category: 'short-e' }, { text: 'ten', category: 'short-e' }, { text: 'red', category: 'short-e' },
@@ -84,19 +86,35 @@
             { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' }
         ];
 
-        let items = JSON.parse(localStorage.getItem('phonics_ipad_v2')) || initialWords;
         let currentCategory = 'short-a';
-        let speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
-        speechConfig.speechSynthesisVoiceName = "en-US-AvaNeural"; // 設定高品質真人女聲
+        let speechConfig = null;
 
-        function initApp() {
-            // 在點擊時主動請求麥克風權限 (iPad 關鍵)
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(() => {
+        // iPad 關鍵：解鎖音訊上下文
+        async function unlockAndStart() {
+            // 1. 初始化 Azure Config
+            speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
+            speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
+            
+            // 2. 請求麥克風權限
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // 3. 播放一段靜音來啟動 iOS 音訊 (此為 iPad 必做)
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+                synthesizer.speakTextAsync("", result => {
+                    synthesizer.close();
                     document.getElementById('overlay').classList.add('hidden');
                     renderCards();
-                })
-                .catch(err => alert("請開啟麥克風權限以進行練習"));
+                });
+            } catch (err) {
+                alert("請授權麥克風存取以進行練習！");
+            }
+        }
+
+        function updateVoice() {
+            if (speechConfig) {
+                speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
+            }
         }
 
         function changeCategory(cat) {
@@ -109,14 +127,13 @@
 
         function renderCards() {
             const grid = document.getElementById('card-grid');
-            const filtered = items.filter(i => i.category === currentCategory);
-            
+            const filtered = initialWords.filter(i => i.category === currentCategory);
             grid.innerHTML = filtered.map(item => `
-                <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-100 flex flex-col items-center">
-                    <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10 tracking-tight">${item.text}</h3>
+                <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-50 flex flex-col items-center">
+                    <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10">${item.text}</h3>
                     <div class="w-full flex gap-3">
                         <button onclick="startTraining('${item.text}')" class="flex-1 bg-[#E64A4A] text-white py-5 rounded-3xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
-                            <span class="text-2xl">🎤</span> 錄音練習
+                            <span class="text-2xl">🎤</span> 錄音
                         </button>
                         <button onclick="playTTS('${item.text}')" class="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center text-3xl active:bg-gray-200">
                             🔊
@@ -126,42 +143,38 @@
             `).join('');
         }
 
-        // --- 真人發音 (Azure TTS) ---
+        // --- Azure TTS 發音 ---
         function playTTS(text) {
+            if (!speechConfig) return;
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
             synthesizer.speakTextAsync(text, 
-                result => {
-                    if (result) synthesizer.close();
-                },
-                error => {
-                    console.error(error);
-                    synthesizer.close();
-                }
+                result => { synthesizer.close(); },
+                error => { synthesizer.close(); console.error(error); }
             );
         }
 
-        // --- 核心錄音評測 (4秒倒數) ---
-        async function startTraining(refText) {
-            const indicator = document.getElementById('recording-indicator');
-            const countdownText = document.getElementById('countdown-text');
+        // --- 錄音評測 (4秒倒數) ---
+        function startTraining(refText) {
+            const overlay = document.getElementById('countdown-overlay');
+            const num = document.getElementById('countdown-num');
+            overlay.classList.remove('hidden');
             
-            indicator.classList.remove('hidden');
             let timer = 4;
-            countdownText.innerText = timer;
+            num.innerText = timer;
 
             const interval = setInterval(() => {
                 timer--;
                 if (timer > 0) {
-                    countdownText.innerText = timer;
+                    num.innerText = timer;
                 } else {
                     clearInterval(interval);
-                    indicator.classList.add('hidden');
-                    runAzureAssessment(refText);
+                    overlay.classList.add('hidden');
+                    runAssessment(refText);
                 }
             }, 1000);
         }
 
-        function runAzureAssessment(refText) {
+        function runAssessment(refText) {
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
                 refText, 
@@ -174,17 +187,21 @@
 
             recognizer.recognizeOnceAsync(result => {
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                if (res) {
-                    const score = Math.round(res.accuracyScore);
-                    showScore(score);
+                if (res && res.accuracyScore !== undefined) {
+                    showScore(Math.round(res.accuracyScore));
+                } else {
+                    alert("聽不到聲音，請靠近麥克風再試一次。");
                 }
                 recognizer.close();
+            }, err => {
+                recognizer.close();
+                console.error(err);
             });
         }
 
         function showScore(score) {
-            const badge = document.getElementById('global-score-badge');
-            document.getElementById('global-score').innerText = score;
+            const badge = document.getElementById('score-badge');
+            document.getElementById('current-score').innerText = score;
             badge.classList.remove('hidden');
             setTimeout(() => badge.classList.add('hidden'), 3000);
         }
