@@ -4,154 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PhonicsHero">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/188/188987.png">
     
-    <title>Phonics Hero v5.0</title>
-    
+    <title>Phonics Hero v5.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script>
         const SDK_SOURCES = [
             "https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js",
-            "https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js",
-            "https://aka.ms/csspeechjs-browser-sdk"
+            "https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"
         ];
         let currentIdx = 0;
-
         function loadAzureSDK() {
             const script = document.createElement('script');
             script.src = SDK_SOURCES[currentIdx];
             script.onload = () => {
-                document.getElementById('status-msg').innerText = "✅ 系統引擎就緒";
+                document.getElementById('status-msg').innerText = "✅ 引擎就緒";
                 document.getElementById('start-btn').classList.remove('hidden');
             };
             script.onerror = () => {
                 currentIdx++;
-                if (currentIdx < SDK_SOURCES.length) {
-                    loadAzureSDK();
-                } else {
-                    document.getElementById('status-msg').innerText = "❌ 引擎載入失敗，請檢查網路。";
-                    document.getElementById('status-msg').style.color = "#ff4444";
-                }
+                if (currentIdx < SDK_SOURCES.length) loadAzureSDK();
             };
             document.head.appendChild(script);
         }
         window.onload = loadAzureSDK;
     </script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
         body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-        .ipad-sidebar { background-color: #2D2D2D; width: 300px; flex-shrink: 0; }
+        .ipad-sidebar { background-color: #2D2D2D; width: 280px; flex-shrink: 0; }
         .active-lesson { background-color: #CC0000 !important; color: white !important; }
         .card-pokemon { background: white; border-radius: 40px; box-shadow: 0 10px 0 #E5E5E5; transition: 0.2s; }
         .card-pokemon:active { transform: translateY(4px); box-shadow: 0 4px 0 #E5E5E5; }
         #boot-screen { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .feedback-pop { animation: popScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popScale { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="h-screen flex">
 
     <div id="boot-screen">
-        <div class="text-center mb-10">
-            <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-            <p class="text-gray-500 tracking-[0.3em] font-bold">VERSION 5.0 - iPad PWA Final</p>
-        </div>
-        
-        <p id="status-msg" class="mb-10 text-blue-400 font-mono animate-pulse">正在檢查語音引擎資源...</p>
-        
-        <button id="start-btn" onclick="ipadMasterLaunch()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">
-            INITIALIZE SYSTEM
-        </button>
+        <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
+        <p class="text-gray-500 font-bold mb-10">VERSION 5.2 - PWA Final</p>
+        <p id="status-msg" class="mb-10 text-blue-400 font-mono animate-pulse">正在檢查資源...</p>
+        <button id="start-btn" onclick="ipadMasterLaunch()" class="hidden bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">INITIALIZE SYSTEM</button>
     </div>
 
-    <aside class="ipad-sidebar flex flex-col p-8 text-white z-50">
-        <h2 class="text-2xl font-black mb-10 italic text-yellow-400 border-b border-gray-700 pb-4 text-center">TRAINER HUB</h2>
-        
-        <div class="mb-8 bg-black/30 p-4 rounded-2xl">
-            <label class="text-gray-500 text-[10px] font-bold uppercase block mb-2">Voice Selector</label>
-            <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-xl outline-none border-2 border-transparent focus:border-red-500 font-bold">
-                <option value="en-US-AvaNeural">Ava (Young)</option>
-                <option value="en-US-AndrewNeural">Andrew (Man)</option>
-                <option value="en-US-EmmaNeural">Emma (Child)</option>
-            </select>
-        </div>
-
-        <nav class="flex-1 space-y-4 overflow-y-auto">
-            <button onclick="changeCategory('short-u', this)" class="nav-btn active-lesson w-full p-6 rounded-3xl text-left font-black text-xl transition-all">☔ SHORT U</button>
-            <button onclick="changeCategory('short-o', this)" class="nav-btn w-full p-6 rounded-3xl text-left font-black text-xl hover:bg-white/10 transition-all">🐙 SHORT O</button>
-            <button onclick="changeCategory('short-i', this)" class="nav-item w-full p-6 rounded-3xl text-left font-black text-xl hover:bg-white/10 transition-all">🧊 SHORT I</button>
+    <aside class="ipad-sidebar flex flex-col p-6 text-white z-50">
+        <h2 class="text-2xl font-black mb-8 italic text-yellow-400 text-center uppercase tracking-tighter">Trainer</h2>
+        <nav class="flex-1 space-y-3 overflow-y-auto">
+            <button onclick="changeCategory('short-a', this)" class="nav-btn active-lesson w-full p-5 rounded-3xl text-left font-black text-lg italic">🍎 SHORT A</button>
+            <button onclick="changeCategory('short-e', this)" class="nav-btn w-full p-5 rounded-3xl text-left font-black text-lg italic hover:bg-white/10">🍳 SHORT E</button>
+            <button onclick="changeCategory('short-i', this)" class="nav-btn w-full p-5 rounded-3xl text-left font-black text-lg italic hover:bg-white/10">🧊 SHORT I</button>
+            <button onclick="changeCategory('short-o', this)" class="nav-btn w-full p-5 rounded-3xl text-left font-black text-lg italic hover:bg-white/10">🐙 SHORT O</button>
+            <button onclick="changeCategory('short-u', this)" class="nav-btn w-full p-5 rounded-3xl text-left font-black text-lg italic hover:bg-white/10">☔ SHORT U</button>
+            <div class="border-t border-gray-700 my-4"></div>
+            <button onclick="changeCategory('long-a', this)" class="nav-btn w-full p-5 rounded-3xl text-left font-black text-lg italic hover:bg-white/10">🎂 LONG A</button>
         </nav>
     </aside>
 
     <main class="flex-1 flex flex-col relative">
         <header class="h-32 flex justify-between items-center px-12">
-            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase">Short U</h3>
-            <div id="score-ring" class="hidden bg-green-500 text-white px-10 py-4 rounded-full font-black text-2xl shadow-xl animate-bounce">
-                SCORE: <span id="last-score">0</span>
+            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase">Short A</h3>
+            <div id="feedback-box" class="hidden flex items-center gap-4">
+                <div id="feedback-text" class="feedback-pop bg-yellow-400 text-black px-8 py-3 rounded-full font-black text-2xl shadow-lg">Excellent!</div>
+                <div class="bg-white px-6 py-3 rounded-full font-black text-2xl border-4 border-yellow-400">Score: <span id="score-val">0</span></div>
             </div>
         </header>
 
-        <div id="grid-container" class="flex-1 overflow-y-auto px-12 pb-24 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-10">
-            </div>
-
-        <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/95 flex flex-col items-center justify-center">
-            <div id="rec-timer" class="text-[20rem] font-black text-red-600 leading-none italic">4</div>
-            <p class="text-4xl font-black text-gray-400 uppercase tracking-[0.5em]">Listening</p>
-        </div>
+        <div id="grid-container" class="flex-1 overflow-y-auto px-12 pb-24 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-10"></div>
     </main>
 
-    <script>
-        const CONFIG = {
-            KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k",
-            REGION: "eastasia"
-        };
+    <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/95 flex flex-col items-center justify-center">
+        <div id="rec-timer" class="text-[20rem] font-black text-red-600 leading-none italic">4</div>
+        <p id="rec-hint" class="text-4xl font-black text-gray-400 uppercase tracking-widest animate-pulse">Ready...</p>
+    </div>
 
+    <script>
+        const CONFIG = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
         const WORDS = [
-            {t:'duck',c:'short-u'},{t:'bus',c:'short-u'},{t:'nut',c:'short-u'},{t:'bug',c:'short-u'},{t:'sun',c:'short-u'},{t:'gun',c:'short-u'},{t:'tub',c:'short-u'},{t:'cup',c:'short-u'},{t:'jug',c:'short-u'},{t:'rug',c:'short-u'},
-            {t:'mop',c:'short-o'},{t:'top',c:'short-o'},{t:'pot',c:'short-o'},{t:'dot',c:'short-o'},{t:'cop',c:'short-o'},{t:'ox',c:'short-o'},{t:'hop',c:'short-o'},{t:'box',c:'short-o'},{t:'sock',c:'short-o'},
-            {t:'pin',c:'short-i'},{t:'lid',c:'short-i'},{t:'sit',c:'short-i'},{t:'dig',c:'short-i'},{t:'big',c:'short-i'},{t:'wig',c:'short-i'},{t:'kit',c:'short-i'},{t:'six',c:'short-i'},{t:'sick',c:'short-i'}
+            {t:'cat',c:'short-a'},{t:'bat',c:'short-a'},{t:'mat',c:'short-a'},{t:'hat',c:'short-a'},{t:'fan',c:'short-a'},{t:'can',c:'short-a'},{t:'pan',c:'short-a'},{t:'van',c:'short-a'},{t:'map',c:'short-a'},{t:'cap',c:'short-a'},{t:'tap',c:'short-a'},{t:'nap',c:'short-a'},{t:'bag',c:'short-a'},{t:'tag',c:'short-a'},{t:'rag',c:'short-a'},{t:'wag',c:'short-a'},{t:'ham',c:'short-a'},{t:'jam',c:'short-a'},{t:'yam',c:'short-a'},{t:'dam',c:'short-a'},{t:'dad',c:'short-a'},{t:'sad',c:'short-a'},{t:'mad',c:'short-a'},{t:'bad',c:'short-a'},
+            {t:'hen',c:'short-e'},{t:'pen',c:'short-e'},{t:'ten',c:'short-e'},{t:'men',c:'short-e'},{t:'red',c:'short-e'},{t:'bed',c:'short-e'},{t:'jet',c:'short-e'},{t:'net',c:'short-e'},{t:'wet',c:'short-e'},{t:'pet',c:'short-e'},
+            {t:'pig',c:'short-i'},{t:'wig',c:'short-i'},{t:'dig',c:'short-i'},{t:'bin',c:'short-i'},{t:'fin',c:'short-i'},{t:'pin',c:'short-i'},{t:'win',c:'short-i'},{t:'sit',c:'short-i'},{t:'hit',c:'short-i'},
+            {t:'hot',c:'short-o'},{t:'pot',c:'short-o'},{t:'cot',c:'short-o'},{t:'dot',c:'short-o'},{t:'hop',c:'short-o'},{t:'mop',c:'short-o'},{t:'top',c:'short-o'},{t:'cop',c:'short-o'},{t:'dog',c:'short-o'},{t:'log',c:'short-o'},
+            {t:'duck',c:'short-u'},{t:'bus',c:'short-u'},{t:'nut',c:'short-u'},{t:'bug',c:'short-u'},{t:'sun',c:'short-u'},{t:'run',c:'short-u'},{t:'gun',c:'short-u'},{t:'tub',c:'short-u'},{t:'cup',c:'short-u'},{t:'jug',c:'short-u'},{t:'rug',c:'short-u'},
+            {t:'cake',c:'long-a'},{t:'lake',c:'long-a'},{t:'bake',c:'long-a'},{t:'rake',c:'long-a'},{t:'fake',c:'long-a'},{t:'make',c:'long-a'},{t:'take',c:'long-a'},{t:'mail',c:'long-a'},{t:'tail',c:'long-a'},{t:'rain',c:'long-a'},{t:'day',c:'long-a'},{t:'say',c:'long-a'}
         ];
 
         let azureConfig = null;
 
         async function ipadMasterLaunch() {
             try {
-                // 解鎖 iPad 音訊上下文
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                const ctx = new AudioContext();
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
                 if (ctx.state === 'suspended') await ctx.resume();
-
-                // 請求麥克風
                 await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                // 初始化 Azure
                 azureConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.KEY, CONFIG.REGION);
-                
-                // 測試連線
-                const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
-                syn.speakTextAsync("", () => {
-                    syn.close();
-                    document.getElementById('boot-screen').style.display = 'none';
-                    changeCategory('short-u', document.querySelector('.nav-btn'));
-                });
-            } catch (err) {
-                alert("初始化失敗：請確認已在 Safari 設定中允許麥克風權限。");
-            }
+                azureConfig.speechSynthesisVoiceName = "en-US-AvaNeural";
+                document.getElementById('boot-screen').style.display = 'none';
+                changeCategory('short-a', document.querySelector('.nav-btn'));
+            } catch (err) { alert("請確保麥克風已授權"); }
         }
 
         function changeCategory(cat, btn) {
             document.getElementById('display-title').innerText = cat.replace('-', ' ');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-lesson'));
             if(btn) btn.classList.add('active-lesson');
-            
             const container = document.getElementById('grid-container');
             container.innerHTML = WORDS.filter(w => w.c === cat).map(w => `
                 <div class="card-pokemon p-12 flex flex-col items-center justify-between">
                     <h4 class="text-8xl font-black text-gray-800 lowercase tracking-tighter">${w.t}</h4>
                     <div class="w-full mt-10 flex gap-4">
-                        <button onclick="startTraining('${w.t}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 transition-all shadow-lg">練習</button>
+                        <button onclick="startTraining('${w.t}', '${cat}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
                         <button onclick="playSample('${w.t}')" class="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center text-4xl active:bg-gray-200">🔊</button>
                     </div>
                 </div>
@@ -159,42 +127,63 @@
         }
 
         function playSample(text) {
-            azureConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
             const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
             syn.speakTextAsync(text, () => syn.close(), () => syn.close());
         }
 
-        function startTraining(text) {
+        function startTraining(text, cat) {
             const overlay = document.getElementById('rec-overlay');
+            const timer = document.getElementById('rec-timer');
+            const hint = document.getElementById('rec-hint');
             overlay.classList.remove('hidden');
             let c = 4;
-            document.getElementById('rec-timer').innerText = c;
+            timer.innerText = c;
             const itv = setInterval(() => {
                 c--;
-                if(c > 0) document.getElementById('rec-timer').innerText = c;
-                else {
+                if(c > 0) {
+                    timer.innerText = c;
+                    if(c === 1) hint.innerText = "Speak NOW!";
+                } else {
                     clearInterval(itv);
                     overlay.classList.add('hidden');
-                    runAssessment(text);
+                    runAssessment(text, cat);
                 }
             }, 1000);
         }
 
-        function runAssessment(text) {
+        function runAssessment(targetText, cat) {
             const audio = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pron = new SpeechSDK.PronunciationAssessmentConfig(text, 100, 0);
+            const pron = new SpeechSDK.PronunciationAssessmentConfig(targetText, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
             const rec = new SpeechSDK.SpeechRecognizer(azureConfig, audio);
             pron.applyTo(rec);
-            rec.recognizeOnceAsync(res => {
-                const result = SpeechSDK.PronunciationAssessmentResult.fromResult(res);
-                if (result && result.accuracyScore !== undefined) {
-                    const score = Math.round(result.accuracyScore);
-                    document.getElementById('last-score').innerText = score;
-                    document.getElementById('score-ring').classList.remove('hidden');
-                    setTimeout(() => document.getElementById('score-ring').classList.add('hidden'), 3000);
-                }
+            rec.recognizeOnceAsync(result => {
+                const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                if (res) showFeedback(res.accuracyScore, targetText, cat);
                 rec.close();
-            }, () => rec.close());
+            });
+        }
+
+        function showFeedback(score, text, cat) {
+            const box = document.getElementById('feedback-box');
+            const txt = document.getElementById('feedback-text');
+            const val = document.getElementById('score-val');
+            box.classList.remove('hidden');
+            val.innerText = Math.round(score);
+
+            let comment = "";
+            let color = "bg-yellow-400";
+            let ttsMsg = "";
+
+            if (score >= 90) { comment = "Perfect! 🌟"; color = "bg-green-500 text-white"; ttsMsg = "Perfect!"; }
+            else if (score >= 70) { comment = "Great Job! 👍"; color = "bg-blue-500 text-white"; ttsMsg = "Great job!"; }
+            else if (score >= 50) { comment = "Nice Try! 😊"; color = "bg-yellow-400 text-black"; ttsMsg = "Nice try!"; }
+            else { comment = "Try Again! 💪"; color = "bg-red-500 text-white"; ttsMsg = "Say again!"; }
+
+            txt.innerText = comment;
+            txt.className = `feedback-pop ${color} px-8 py-3 rounded-full font-black text-2xl shadow-lg`;
+            const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
+            syn.speakTextAsync(ttsMsg, () => syn.close());
+            setTimeout(() => { box.classList.add('hidden'); }, 4000);
         }
     </script>
 </body>
