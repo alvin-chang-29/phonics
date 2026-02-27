@@ -17,48 +17,51 @@
 <body class="h-screen overflow-hidden flex bg-[#FDF4D0]">
 
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
-        <h1 class="text-5xl mb-10 font-black text-yellow-400 italic">PHONICS HERO</h1>
-        <button onclick="unlockAndStart()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-16 rounded-full text-3xl shadow-2xl active:scale-95 transition-all">
+        <h1 class="text-5xl mb-6 font-black text-yellow-400 italic">PHONICS HERO</h1>
+        <div id="status-msg" class="text-gray-400 mb-8 font-bold">準備解鎖音訊系統...</div>
+        <button id="start-btn" onclick="unlockAndStart()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-16 rounded-full text-3xl shadow-2xl active:scale-95 transition-all">
             READY TO TRAIN!
         </button>
     </div>
 
     <aside class="w-72 bg-[#3E3E3E] flex flex-col shadow-2xl z-20">
-        <div class="p-8 border-b border-gray-600">
-            <span class="text-white font-black text-xl italic uppercase">Trainer Hub</span>
-            <div class="mt-4">
-                <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Voice Selection</label>
-                <select id="voice-select" onchange="updateVoice()" class="w-full bg-gray-800 text-white text-sm p-2 rounded-lg outline-none border border-gray-600">
-                    <option value="en-US-AvaNeural">Ava (Young Lady)</option>
-                    <option value="en-US-AndrewNeural">Andrew (Gentle Man)</option>
-                    <option value="en-US-EmmaNeural">Emma (Sweet)</option>
-                    <option value="en-US-BrianNeural">Brian (Clear)</option>
-                    <option value="en-GB-SoniaNeural">Sonia (British)</option>
-                </select>
-            </div>
+        <div class="p-6 border-b border-gray-600 bg-[#2D2D2D]">
+            <span class="text-yellow-400 font-black text-xs uppercase tracking-[0.2em] block mb-3">Voice Settings</span>
+            <select id="voice-select" class="w-full bg-gray-700 text-white text-base p-3 rounded-xl outline-none border-2 border-gray-500 focus:border-yellow-400 transition-all font-bold">
+                <option value="en-US-AvaNeural">👩‍🦰 Ava (Young)</option>
+                <option value="en-US-AndrewNeural">👨‍🦱 Andrew (Man)</option>
+                <option value="en-US-EmmaNeural">👧 Emma (Sweet)</option>
+                <option value="en-US-BrianNeural">🧔 Brian (Clear)</option>
+                <option value="en-GB-SoniaNeural">👩‍💼 Sonia (British)</option>
+                <option value="en-US-JennyNeural">👩 Jenny (Standard)</option>
+            </select>
         </div>
 
-        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <button onclick="changeCategory('short-a')" id="btn-short-a" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold sidebar-item-active">
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="lesson-nav">
+            <button onclick="changeCategory('short-a', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold sidebar-item-active">
                 <span class="text-2xl">🍎</span> Short A
             </button>
-            <button onclick="changeCategory('short-e')" id="btn-short-e" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="changeCategory('short-e', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">🍳</span> Short E
             </button>
-            <button onclick="changeCategory('short-i')" id="btn-short-i" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="changeCategory('short-i', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">🧊</span> Short I
             </button>
-            <button onclick="changeCategory('short-o')" id="btn-short-o" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="changeCategory('short-o', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">🐙</span> Short O
             </button>
-            <button onclick="changeCategory('short-u')" id="btn-short-u" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="changeCategory('short-u', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
                 <span class="text-2xl">☔</span> Short U
+            </button>
+            <div class="border-t border-gray-600 my-4"></div>
+            <button onclick="changeCategory('long-a', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+                <span class="text-2xl">🍰</span> Long A
             </button>
         </nav>
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden relative">
-        <header class="p-8 flex justify-between items-center">
+        <header class="p-8 flex justify-between items-center bg-white bg-opacity-20">
             <h2 id="cat-title" class="text-4xl font-black text-[#3E3E3E] uppercase italic">Short A</h2>
             <div id="score-badge" class="hidden bg-green-500 text-white px-8 py-3 rounded-full font-black animate-bounce shadow-xl text-xl">
                 Score: <span id="current-score">0</span>
@@ -66,8 +69,8 @@
         </header>
 
         <div id="countdown-overlay" class="hidden absolute inset-0 bg-white bg-opacity-95 z-50 flex flex-col items-center justify-center">
-            <div id="countdown-num" class="text-[12rem] font-black text-red-600 leading-none mb-4 italic">4</div>
-            <p class="text-3xl font-bold text-gray-400 uppercase tracking-widest">Prepare to speak...</p>
+            <div id="countdown-num" class="text-[14rem] font-black text-red-600 leading-none mb-4 italic">4</div>
+            <p class="text-3xl font-bold text-gray-400 uppercase tracking-widest animate-pulse">Speak Now...</p>
         </div>
 
         <div id="card-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
@@ -75,6 +78,7 @@
     </main>
 
     <script>
+        // 你的 Azure 設定
         const AZURE_KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
         const REGION = "eastasia";
         
@@ -83,59 +87,76 @@
             { text: 'hen', category: 'short-e' }, { text: 'pen', category: 'short-e' }, { text: 'ten', category: 'short-e' }, { text: 'red', category: 'short-e' },
             { text: 'pig', category: 'short-i' }, { text: 'wig', category: 'short-i' }, { text: 'bin', category: 'short-i' }, { text: 'sit', category: 'short-i' },
             { text: 'hot', category: 'short-o' }, { text: 'pot', category: 'short-o' }, { text: 'dog', category: 'short-o' }, { text: 'log', category: 'short-o' },
-            { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' }
+            { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' },
+            { text: 'cake', category: 'long-a' }, { text: 'lake', category: 'long-a' }, { text: 'rain', category: 'long-a' }, { text: 'day', category: 'long-a' }
         ];
 
         let currentCategory = 'short-a';
         let speechConfig = null;
 
-        // iPad 關鍵：解鎖音訊上下文
+        // iPad 關鍵：啟動音訊與診斷
         async function unlockAndStart() {
-            // 1. 初始化 Azure Config
-            speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
-            speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
-            
-            // 2. 請求麥克風權限
+            const status = document.getElementById('status-msg');
+            status.innerText = "正在連接 Azure 引擎...";
+
             try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
+                // 1. 初始化 Azure Config
+                speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
+                speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
                 
-                // 3. 播放一段靜音來啟動 iOS 音訊 (此為 iPad 必做)
+                // 2. 請求麥克風
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // 3. 解鎖 iOS AudioContext (iPad 必備)
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const audioCtx = new AudioContext();
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                oscillator.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.1);
+
+                // 4. 測試連線 (發出一段靜音)
                 const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
                 synthesizer.speakTextAsync("", result => {
                     synthesizer.close();
                     document.getElementById('overlay').classList.add('hidden');
                     renderCards();
+                }, err => {
+                    alert("Azure 連線失敗，請檢查 Key 或網路設定");
                 });
+
             } catch (err) {
-                alert("請授權麥克風存取以進行練習！");
+                console.error(err);
+                status.innerText = "錯誤: 無法啟動麥克風或音訊引擎";
+                alert("錯誤: " + err.message);
             }
         }
 
-        function updateVoice() {
-            if (speechConfig) {
-                speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
-            }
-        }
-
-        function changeCategory(cat) {
+        function changeCategory(cat, btn) {
             currentCategory = cat;
             document.getElementById('cat-title').innerText = cat.replace('-', ' ');
-            document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('sidebar-item-active'));
-            document.getElementById(`btn-${cat}`).classList.add('sidebar-item-active');
+            
+            // 更新按鈕樣式
+            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('sidebar-item-active'));
+            btn.classList.add('sidebar-item-active');
+            
             renderCards();
         }
 
         function renderCards() {
             const grid = document.getElementById('card-grid');
             const filtered = initialWords.filter(i => i.category === currentCategory);
+            
             grid.innerHTML = filtered.map(item => `
                 <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-50 flex flex-col items-center">
-                    <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10">${item.text}</h3>
+                    <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10 tracking-tight">${item.text}</h3>
                     <div class="w-full flex gap-3">
-                        <button onclick="startTraining('${item.text}')" class="flex-1 bg-[#E64A4A] text-white py-5 rounded-3xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
-                            <span class="text-2xl">🎤</span> 錄音
+                        <button onclick="startTraining('${item.text}')" class="flex-1 bg-[#E64A4A] text-white py-5 rounded-3xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all">
+                            <span class="text-2xl">🎤</span> 練習
                         </button>
-                        <button onclick="playTTS('${item.text}')" class="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center text-3xl active:bg-gray-200">
+                        <button onclick="playTTS('${item.text}')" class="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center text-3xl active:bg-gray-200 transition-all">
                             🔊
                         </button>
                     </div>
@@ -143,9 +164,12 @@
             `).join('');
         }
 
-        // --- Azure TTS 發音 ---
+        // 真人發音
         function playTTS(text) {
             if (!speechConfig) return;
+            // 即時獲取選單選擇的人聲
+            speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
+            
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
             synthesizer.speakTextAsync(text, 
                 result => { synthesizer.close(); },
@@ -153,7 +177,7 @@
             );
         }
 
-        // --- 錄音評測 (4秒倒數) ---
+        // 4秒倒數評測
         function startTraining(refText) {
             const overlay = document.getElementById('countdown-overlay');
             const num = document.getElementById('countdown-num');
@@ -175,6 +199,9 @@
         }
 
         function runAssessment(refText) {
+            // 每次重新獲取最新的 config
+            speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
+            
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
                 refText, 
@@ -190,12 +217,12 @@
                 if (res && res.accuracyScore !== undefined) {
                     showScore(Math.round(res.accuracyScore));
                 } else {
-                    alert("聽不到聲音，請靠近麥克風再試一次。");
+                    alert("錄音失敗，請檢查權限或音量");
                 }
                 recognizer.close();
             }, err => {
                 recognizer.close();
-                console.error(err);
+                alert("評測錯誤: " + err);
             });
         }
 
