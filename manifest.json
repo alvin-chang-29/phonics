@@ -1,0 +1,16 @@
+{
+  "short_name": "PhonicsHero",
+  "name": "Phonics Hero Master",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/188/188987.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#FDF4D0",
+  "theme_color": "#CC0000",
+  "orientation": "landscape"
+}
