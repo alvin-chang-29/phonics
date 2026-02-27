@@ -1,163 +1,51 @@
-<!DOCTYPE html><html lang="zh-TW"><head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics Master AI Pro - Fix</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .card { transition: all 0.2s ease; }
-        .active-unit { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #f59e0b; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .voice-btn { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; background: #f3f4f6; color: #6b7280; transition: all 0.2s; white-space: nowrap; }
-        .voice-btn-active { background-color: #f59e0b; color: white; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-    </style></head><body class="bg-slate-50 h-screen overflow-hidden flex flex-col">
+// 控制彈窗開關
+function toggleBatchModal() {
+    const modal = document.getElementById('batch-modal');
+    modal.classList.toggle('hidden');
+}
 
-    <div id="setup-overlay" class="fixed inset-0 bg-amber-500 z-50 flex flex-col items-center justify-center p-10 text-white text-center">
-        <div class="text-6xl mb-6">🎙️</div>
-        <h2 class="text-3xl font-bold mb-4">準備好開始了嗎？</h2>
-        <button onclick="initApp()" class="bg-white text-amber-600 px-10 py-4 rounded-full font-black text-xl shadow-2xl active:scale-95 transition-transform">
-            啟動學習系統
-        </button>
-    </div>
+// 核心批次處理邏輯
+async function processBatch() {
+    const fileInput = document.getElementById('file-input');
+    const textArea = document.getElementById('batch-text');
+    let rawContent = "";
 
-    <header class="bg-white pt-12 pb-4 px-6 shadow-sm border-b">
-        <div class="flex justify-between items-start">
-            <div>
-                <p class="text-[10px] font-black text-amber-500 uppercase tracking-tighter">Azure AI Neural Engine</p>
-                <h1 class="text-xl font-bold text-slate-800">Phonics Master Pro</h1>
-            </div>
-            <div id="unit-display" class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">Short A</div>
-        </div>
-        <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
-            <button onclick="changeVoice('en-US-AvaNeural')" id="v-en-US-AvaNeural" class="voice-btn voice-btn-active">Ava (Default)</button>
-            <button onclick="changeVoice('en-US-AndrewNeural')" id="v-en-US-AndrewNeural" class="voice-btn">Andrew</button>
-            <button onclick="changeVoice('en-GB-EmmaNeural')" id="v-en-GB-EmmaNeural" class="voice-btn">Emma (UK)</button>
-        </div>
-    </header>
+    // 1. 優先處理檔案
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        rawContent = await file.text();
+    } 
+    // 2. 若沒檔案則處理 Textarea
+    else if (textArea.value.trim() !== "") {
+        rawContent = textArea.value;
+    } else {
+        alert("請選擇檔案或輸入文字內容！");
+        return;
+    }
 
-    <main class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar" id="app-content"></main>
-    <div class="bg-white border-t p-4 flex gap-3 overflow-x-auto no-scrollbar" id="nav-bar"></div>
+    // 3. 解析內容 (支援換行或逗號區隔)
+    // 使用正規表達式 [,\n\r]+ 分割，並過濾掉空白項
+    const rawList = rawContent.split(/[,\n\r]+/).map(item => item.trim()).filter(item => item !== "");
 
-    <script>
-        const subscriptionKey = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
-        const serviceRegion = "eastasia";
-        let currentVoice = "en-US-AvaNeural"; 
-        let isRecording = false;
-
-        const wordData = {
-            shortA: { label: 'Short A', icon: '🍎', data: [{word:'ant',sound:'ant'},{word:'cat',sound:'at'},{word:'bag',sound:'ag'},{word:'cap',sound:'ap'},{word:'sad',sound:'ad'},{word:'van',sound:'an'},{word:'bat',sound:'at'},{word:'rat',sound:'at'},{word:'pan',sound:'an'},{word:'can',sound:'an'}]},
-            shortE: { label: 'Short E', icon: '🥚', data: [{word:'bed',sound:'ed'},{word:'jet',sound:'et'},{word:'pen',sound:'en'},{word:'red',sound:'ed'},{word:'net',sound:'et'},{word:'hen',sound:'en'},{word:'egg',sound:'egg'}]},
-            shortI: { label: 'Short I', icon: '🐷', data: [{word:'pin',sound:'in'},{word:'lid',sound:'id'},{word:'sit',sound:'it'},{word:'pig',sound:'ig'},{word:'wig',sound:'ig'},{word:'bin',sound:'in'},{word:'six',sound:'ix'}]},
-            shortO: { label: 'Short O', icon: '🐙', data: [{word:'pot',sound:'ot'},{word:'hot',sound:'ot'},{word:'dot',sound:'ot'},{word:'dog',sound:'og'},{word:'box',sound:'ox'},{word:'fox',sound:'ox'},{word:'top',sound:'op'}]},
-            shortU: { label: 'Short U', icon: '☂️', data: [{word:'bus',sound:'us'},{word:'sun',sound:'un'},{word:'cup',sound:'up'},{word:'bug',sound:'ug'},{word:'nut',sound:'ut'},{word:'rug',sound:'ug'},{word:'tub',sound:'ub'}]},
-            longA: { label: 'Long A', icon: '🍰', data: [{word:'cake',sound:'a-e'},{word:'rain',sound:'ai'},{word:'day',sound:'ay'},{word:'lake',sound:'a-e'},{word:'gate',sound:'a-e'}]},
-            longE: { label: 'Long E', icon: '🍃', data: [{word:'bee',sound:'ee'},{word:'leaf',sound:'ea'},{word:'tree',sound:'ee'},{word:'seal',sound:'ea'},{word:'key',sound:'ey'}]},
-            longI: { label: 'Long I', icon: '🚲', data: [{word:'bike',sound:'i-e'},{word:'kite',sound:'i-e'},{word:'fly',sound:'y'},{word:'pie',sound:'ie'},{word:'ice',sound:'i-e'}]},
-            longO: { label: 'Long O', icon: '🌊', data: [{word:'rope',sound:'o-e'},{word:'boat',sound:'oa'},{word:'coat',sound:'oa'},{word:'rose',sound:'o-e'},{word:'snow',sound:'ow'}]},
-            longU: { label: 'Long U', icon: '🦄', data: [{word:'mute',sound:'u-e'},{word:'blue',sound:'ue'},{word:'glue',sound:'ue'},{word:'cube',sound:'u-e'},{word:'tube',sound:'u-e'}]}
+    // 4. 迭代加入系統
+    rawList.forEach(text => {
+        const lowerText = text.toLowerCase();
+        const newItem = {
+            id: Date.now() + Math.random(), // 避免批次加入時 ID 重複
+            text: lowerText,
+            category: autoCategorize(lowerText), // 自動歸類邏輯 (LongA, LongE, ShortA)
+            type: currentMode // 根據當前分頁歸類 (單字或例句)
         };
+        items.push(newItem);
+    });
 
-        let currentKey = 'shortA';
-
-        function initApp() {
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
-                document.getElementById('setup-overlay').style.display = 'none';
-                renderApp();
-            }).catch(err => alert("請允許麥克風權限以使用評測功能"));
-        }
-
-        function playSound(text) {
-            if(isRecording) return;
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-            speechConfig.speechSynthesisVoiceName = currentVoice;
-            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-            synthesizer.speakTextAsync(text, r => synthesizer.close());
-        }
-
-        function changeVoice(voiceName) {
-            currentVoice = voiceName;
-            document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('voice-btn-active'));
-            document.getElementById(`v-${voiceName}`).classList.add('voice-btn-active');
-        }
-
-        async function startAzureEval(targetWord, index) {
-            if(isRecording) return;
-            isRecording = true;
-            document.querySelectorAll('.mic-btn').forEach(btn => btn.disabled = true);
-
-            const statusIcon = document.getElementById(`status-${index}`);
-            const fb = document.getElementById(`feedback-${index}`);
-            let timeLeft = 5;
-
-            const timer = setInterval(() => {
-                timeLeft--;
-                if(timeLeft > 0) fb.innerText = `Listening... (${timeLeft}s)`;
-                if(timeLeft <= 0) clearInterval(timer);
-            }, 1000);
-
-            statusIcon.innerHTML = '<div class="spinner"></div>';
-            fb.innerText = `Listening... (${timeLeft}s)`;
-            fb.className = "text-[10px] text-amber-500 font-bold mt-2";
-
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(targetWord, 100, 0);
-            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-            pronConfig.applyTo(recognizer);
-
-            recognizer.recognizeOnceAsync(result => {
-                clearInterval(timer);
-                if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                    const score = SpeechSDK.PronunciationAssessmentResult.fromResult(result).accuracyScore;
-                    if (score >= 80) {
-                        statusIcon.innerHTML = '✅';
-                        fb.innerText = "Excellent!";
-                        fb.className = "text-[10px] text-green-600 font-bold mt-2";
-                    } else {
-                        resetMicState(index, "Try again!");
-                    }
-                } else {
-                    resetMicState(index, "Not heard!");
-                }
-                recognizer.close();
-                isRecording = false;
-                document.querySelectorAll('.mic-btn').forEach(btn => btn.disabled = false);
-            });
-        }
-
-        function resetMicState(index, msg) {
-            document.getElementById(`status-${index}`).innerHTML = '🎤';
-            const fb = document.getElementById(`feedback-${index}`);
-            fb.innerText = msg;
-            fb.className = "text-[10px] text-orange-500 font-bold mt-2";
-        }
-
-        function renderApp() {
-            const container = document.getElementById('app-content');
-            container.innerHTML = wordData[currentKey].data.map((item, i) => `
-                <div class="bg-white rounded-2xl p-4 shadow-sm border-l-4 border-amber-400 flex justify-between items-center card">
-                    <div class="flex-1" onclick="playSound('${item.word}')">
-                        <h2 class="text-3xl font-black text-slate-800">${item.word.toLowerCase()}</h2>
-                        <p class="text-gray-400 text-xs italic">-${item.sound} family</p>
-                    </div>
-                    <div class="flex flex-col items-center pl-4 border-l min-w-[100px]">
-                        <button id="status-${i}" onclick="startAzureEval('${item.word}', ${i})" class="mic-btn bg-slate-50 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-inner active:bg-amber-100">🎤</button>
-                        <div id="feedback-${i}" class="text-[10px] text-gray-300 font-bold mt-2 text-center">Tap to practice</div>
-                    </div>
-                </div>`).join('');
-
-            document.getElementById('nav-bar').innerHTML = Object.keys(wordData).map(key => `
-                <button onclick="switchUnit('${key}')" class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border ${currentKey === key ? 'active-unit shadow-md' : 'border-transparent text-gray-400'}">
-                    <span class="text-xl">${wordData[key].icon}</span><span class="text-[10px] font-bold">${wordData[key].label}</span>
-                </button>`).join('');
-            document.getElementById('unit-display').innerText = wordData[currentKey].label;
-            container.scrollTo(0,0);
-        }
-
-        function switchUnit(key) { currentKey = key; renderApp(); }
-    </script></body></html>
+    // 5. 儲存並更新介面
+    localStorage.setItem('phonics_data', JSON.stringify(items));
+    renderList();
+    
+    // 6. 清空並關閉
+    fileInput.value = "";
+    textArea.value = "";
+    toggleBatchModal();
+    alert(`成功匯入 ${rawList.length} 個項目！`);
+}
