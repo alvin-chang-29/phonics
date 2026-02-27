@@ -3,314 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phonics Hero - 寶可夢發音訓練師</title>
+    <title>Phonics Hero Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://aka.ms/csspeechjs-browser-sdk"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
-        
-        :root {
-            --poke-yellow: #FFDE00;
-            --poke-blue: #3B4CCA;
-            --poke-red: #CC0000;
-            --poke-amber: #FFB300;
-        }
-
-        body { 
-            font-family: 'Fredoka', sans-serif; 
-            background-color: var(--poke-yellow);
-            color: #333;
-        }
-
-        .pokemon-card { 
-            border: 8px solid var(--poke-red); 
-            background-color: var(--poke-amber); 
-            border-radius: 30px;
-            box-shadow: 0 10px 0px #8b0000;
-        }
-
-        .tab-active { 
-            background-color: var(--poke-red); 
-            color: white; 
-            transform: translateY(-4px);
-        }
-
+        body { font-family: 'Fredoka', sans-serif; }
+        .sidebar-item-active { background-color: #E64A4A !important; color: white !important; }
+        .card-shadow { box-shadow: 0 8px 0px #E5E5E5; }
         .lowercase { text-transform: lowercase; }
-
-        /* 錄音動畫 */
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(204, 0, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
-        }
-        .recording { animation: pulse-red 1.5s infinite; }
+        /* 滾動條美化 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 pb-20">
+<body class="h-screen overflow-hidden flex bg-[#FDF4D0]">
 
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-90 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
-        <div class="w-32 h-32 mb-6 bg-white rounded-full border-8 border-gray-300 flex items-center justify-center">
-            <div class="w-full h-1 bg-gray-300 absolute"></div>
-            <div class="w-8 h-8 bg-white border-4 border-gray-300 rounded-full z-10"></div>
-            <span class="text-6xl animate-bounce">⚽</span>
-        </div>
-        <h1 class="text-4xl mb-2 font-bold text-yellow-400">PHONICS HERO</h1>
-        <p class="mb-8 text-gray-300">點擊下方按鈕啟動麥克風並開始訓練</p>
-        <button onclick="initApp()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full text-2xl shadow-xl transition-all active:scale-95">
-            進入道館
+        <h1 class="text-5xl mb-4 font-black text-yellow-400 italic">PHONICS HERO</h1>
+        <button onclick="initApp()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-12 rounded-full text-2xl shadow-2xl transition-all active:scale-95">
+            START TRAINING
         </button>
     </div>
 
-    <div id="main-content" class="max-w-md mx-auto hidden">
-        
-        <div class="flex mb-0 gap-1">
-            <button id="tab-word" onclick="switchTab('word')" class="flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all tab-active">單字卡</button>
-            <button id="tab-sentence" onclick="switchTab('sentence')" class="flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all bg-orange-200">例句練習</button>
+    <aside class="w-72 bg-[#3E3E3E] flex flex-col shadow-2xl z-20">
+        <div class="p-8 flex items-center gap-4 border-b border-gray-600">
+            <div class="w-12 h-12 bg-yellow-400 rounded-full border-4 border-white flex items-center justify-center text-2xl">⚡</div>
+            <span class="text-white font-black text-xl tracking-tighter">TRAINER HUB</span>
         </div>
 
-        <div class="pokemon-card p-6 mb-6">
-            <div class="mb-6 flex gap-2">
-                <input type="text" id="input-word" placeholder="輸入內容..." class="flex-1 p-3 rounded-xl border-4 border-blue-800 lowercase text-lg focus:outline-none">
-                <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-md active:bg-blue-800">ADD</button>
-                <button onclick="toggleBatchModal()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold shadow-md active:bg-green-800">BATCH</button>
-            </div>
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <div class="text-gray-500 text-[10px] font-black uppercase mb-4 px-4 tracking-[0.2em]">Lesson Plan</div>
+            
+            <button onclick="changeCategory('short-a')" id="btn-short-a" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition sidebar-item-active">
+                <span class="text-2xl">🍎</span> Short A
+            </button>
+            <button onclick="changeCategory('short-e')" id="btn-short-e" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+                <span class="text-2xl">🍳</span> Short E
+            </button>
+            <button onclick="changeCategory('short-i')" id="btn-short-i" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+                <span class="text-2xl">🧊</span> Short I
+            </button>
+            <button onclick="changeCategory('short-o')" id="btn-short-o" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+                <span class="text-2xl">🐙</span> Short O
+            </button>
+            <button onclick="changeCategory('short-u')" id="btn-short-u" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+                <span class="text-2xl">☔</span> Short U
+            </button>
+            <div class="h-px bg-gray-600 my-4"></div>
+            <button onclick="changeCategory('long-a')" id="btn-long-a" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold hover:bg-gray-700 transition">
+                <span class="text-2xl">🍰</span> Long A
+            </button>
+        </nav>
 
-            <div id="display-area" class="text-center py-8 min-h-[300px] flex flex-col items-center justify-between border-4 border-dashed border-white border-opacity-50 rounded-2xl">
-                <div>
-                    <p id="category-tag" class="inline-block text-xs bg-white px-3 py-1 rounded-full font-bold text-red-700 mb-4 uppercase tracking-tighter shadow-sm">ready?</p>
-                    <h2 id="current-text" class="text-6xl font-black text-blue-900 drop-shadow-sm lowercase px-2 leading-tight">tap a word</h2>
-                </div>
-                
-                <div class="relative mt-8">
-                    <div id="countdown" class="absolute -top-14 left-1/2 -translate-x-1/2 text-5xl font-black text-red-600 drop-shadow-md hidden">3</div>
-                    <button id="mic-btn" onclick="startAssessment()" class="bg-white p-8 rounded-full shadow-xl border-8 border-white transition-transform active:scale-90">
-                        <span id="mic-icon" class="text-5xl">🎤</span>
-                    </button>
-                </div>
-                
-                <div id="score-display" class="mt-6 bg-white bg-opacity-30 rounded-lg px-6 py-2 hidden">
-                    <span class="text-blue-900 font-bold">Accuracy: </span>
-                    <span id="score-value" class="text-3xl font-black text-red-700">0</span>
-                </div>
-            </div>
+        <div class="p-6">
+            <button onclick="toggleBatchModal()" class="w-full py-4 rounded-2xl bg-white bg-opacity-10 text-white font-black border-2 border-dashed border-gray-500 hover:bg-opacity-20 transition">
+                + BATCH ADD
+            </button>
         </div>
+    </aside>
 
-        <div class="mt-4">
-            <div class="flex justify-between items-center mb-4 border-b-4 border-red-800 pb-1">
-                <h3 class="font-bold text-red-800 text-xl italic">COLLECTION</h3>
-                <button onclick="clearAll()" class="text-xs text-red-700 font-bold underline">清除全部</button>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="p-8 flex justify-between items-center bg-white bg-opacity-50 backdrop-blur-md">
+            <div>
+                <h2 id="cat-title" class="text-4xl font-black text-[#3E3E3E] uppercase italic leading-none">Short A</h2>
+                <p class="text-gray-500 font-bold text-sm mt-2">Master the basic vowel sounds</p>
             </div>
-            <div id="list-items" class="grid grid-cols-1 gap-3"></div>
-        </div>
-    </div>
+            <div class="flex gap-3">
+                <div class="bg-white px-6 py-2 rounded-full shadow-sm border border-gray-200 font-bold text-red-600">
+                    Accuracy: <span id="global-score">--</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="card-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 items-start">
+            </div>
+    </main>
 
     <div id="batch-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[110] hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm border-8 border-yellow-400">
-            <h3 class="text-2xl font-bold text-blue-900 mb-4 flex items-center">
-                <span class="mr-2">🎒</span> 批次載入單字
+        <div class="bg-white rounded-[40px] p-10 w-full max-w-lg border-[12px] border-yellow-400 shadow-2xl">
+            <h3 class="text-3xl font-black text-gray-800 mb-6 flex items-center gap-3">
+                <span>🎒</span> BATCH IMPORT
             </h3>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-600 mb-1 italic">方法 1: 上傳 TXT 檔案</label>
-                <input type="file" id="file-input" accept=".txt" class="w-full text-xs border-2 border-dashed border-gray-300 p-2 rounded-lg">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-600 mb-1 italic">方法 2: 貼上文字 (逗號區隔)</label>
-                <textarea id="batch-text" rows="4" placeholder="apple, cake, bike, lake..." class="w-full p-3 border-2 border-gray-200 rounded-xl lowercase focus:border-blue-500 outline-none text-sm"></textarea>
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="processBatch()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition">開始匯入</button>
-                <button onclick="toggleBatchModal()" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold">取消</button>
+            <textarea id="batch-text" rows="6" placeholder="貼上單字，用逗號隔開 (如: cat, bat, mat...)" class="w-full p-4 border-4 border-gray-100 rounded-3xl lowercase focus:border-blue-400 outline-none mb-6 text-lg"></textarea>
+            <div class="flex gap-4">
+                <button onclick="processBatch()" class="flex-1 bg-red-600 text-white py-5 rounded-3xl font-black text-xl shadow-lg active:scale-95 transition">IMPORT NOW</button>
+                <button onclick="toggleBatchModal()" class="px-8 bg-gray-100 text-gray-500 rounded-3xl font-bold">CLOSE</button>
             </div>
         </div>
     </div>
 
     <script>
-        /**
-         * 1. 初始化與全域變數
-         */
+        // --- 設定 ---
         const AZURE_KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
         const REGION = "eastasia";
-        let items = JSON.parse(localStorage.getItem('phonics_hero_data')) || [];
-        let currentMode = 'word';
+        
+        // --- 預設資料 (照片中的單字) ---
+        const initialWords = [
+            { text: 'cat', category: 'short-a' }, { text: 'bat', category: 'short-a' }, { text: 'hat', category: 'short-a' }, { text: 'mat', category: 'short-a' },
+            { text: 'hen', category: 'short-e' }, { text: 'pen', category: 'short-e' }, { text: 'ten', category: 'short-e' }, { text: 'red', category: 'short-e' },
+            { text: 'pig', category: 'short-i' }, { text: 'wig', category: 'short-i' }, { text: 'bin', category: 'short-i' }, { text: 'sit', category: 'short-i' },
+            { text: 'hot', category: 'short-o' }, { text: 'pot', category: 'short-o' }, { text: 'dog', category: 'short-o' }, { text: 'log', category: 'short-o' },
+            { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' },
+            { text: 'cake', category: 'long-a' }, { text: 'lake', category: 'long-a' }, { text: 'rain', category: 'long-a' }, { text: 'day', category: 'long-a' }
+        ];
+
+        let items = JSON.parse(localStorage.getItem('phonics_pro_v1')) || initialWords;
+        let currentCategory = 'short-a';
 
         function initApp() {
             document.getElementById('overlay').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            renderList();
+            renderCards();
         }
 
-        /**
-         * 2. 自動歸類邏輯 (AI 邏輯實作)
-         */
+        // --- 自動歸類邏輯 ---
         function autoCategorize(text) {
             const val = text.toLowerCase().trim();
-            // 長母音 A: 結尾是 e (a_e) 或包含 ai, ay
-            if (val.match(/a[a-z]e$/) || val.includes('ai') || val.includes('ay')) return 'long-A';
-            // 長母音 E: 包含 ee, ea
-            if (val.includes('ee') || val.includes('ea')) return 'long-E';
-            // 長母音 I: 結尾是 i_e 或包含 igh
-            if (val.match(/i[a-z]e$/) || val.includes('igh')) return 'long-I';
-            // 預設
-            return (currentMode === 'word') ? 'short-A' : 'sentence';
+            if (val.match(/a[a-z]e$/) || val.includes('ai') || val.includes('ay')) return 'long-a';
+            if (val.includes('ee') || val.includes('ea')) return 'long-e';
+            if (val.match(/i[a-z]e$/) || val.includes('igh')) return 'long-i';
+            if (val.includes('o') && val.length <= 3) return 'short-o';
+            if (val.includes('u') && val.length <= 3) return 'short-u';
+            if (val.includes('i') && val.length <= 3) return 'short-i';
+            if (val.includes('e') && val.length <= 3) return 'short-e';
+            return 'short-a';
         }
 
-        /**
-         * 3. 資料處理 (單筆 & 批次)
-         */
-        function addItem() {
-            const input = document.getElementById('input-word');
-            if (!input.value) return;
-            saveItem(input.value);
-            input.value = '';
-            renderList();
+        // --- 介面渲染 ---
+        function changeCategory(cat) {
+            currentCategory = cat;
+            document.getElementById('cat-title').innerText = cat.replace('-', ' ');
+            
+            // 更新 Sidebar UI
+            document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('sidebar-item-active'));
+            document.getElementById(`btn-${cat}`).classList.add('sidebar-item-active');
+            
+            renderCards();
         }
 
-        async function processBatch() {
-            const fileInput = document.getElementById('file-input');
-            const textArea = document.getElementById('batch-text');
-            let content = "";
-
-            if (fileInput.files.length > 0) {
-                content = await fileInput.files[0].text();
-            } else if (textArea.value.trim()) {
-                content = textArea.value;
-            } else {
-                return alert("請輸入文字或選擇檔案");
-            }
-
-            // 解析換行或逗號
-            const list = content.split(/[,\n\r]+/).map(i => i.trim()).filter(i => i !== "");
-            list.forEach(text => saveItem(text));
-
-            localStorage.setItem('phonics_hero_data', JSON.stringify(items));
-            fileInput.value = "";
-            textArea.value = "";
-            toggleBatchModal();
-            renderList();
-        }
-
-        function saveItem(text) {
-            items.push({
-                id: Date.now() + Math.random(),
-                text: text.toLowerCase(),
-                category: autoCategorize(text),
-                type: currentMode
-            });
-            localStorage.setItem('phonics_hero_data', JSON.stringify(items));
-        }
-
-        /**
-         * 4. UI 渲染與互動
-         */
-        function switchTab(mode) {
-            currentMode = mode;
-            document.getElementById('tab-word').className = `flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all ${mode==='word'?'tab-active':'bg-orange-200'}`;
-            document.getElementById('tab-sentence').className = `flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all ${mode==='sentence'?'tab-active':'bg-orange-200'}`;
-            renderList();
-        }
-
-        function renderList() {
-            const container = document.getElementById('list-items');
-            const filtered = items.filter(i => i.type === currentMode);
-            container.innerHTML = filtered.map(item => `
-                <div onclick="selectItem('${item.text}', '${item.category}')" class="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-gray-200 flex justify-between items-center cursor-pointer active:scale-95 transition-transform">
-                    <span class="font-bold text-xl text-blue-900 lowercase">${item.text}</span>
-                    <span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded font-black uppercase">${item.category}</span>
+        function renderCards() {
+            const grid = document.getElementById('card-grid');
+            const filtered = items.filter(i => i.category === currentCategory);
+            
+            grid.innerHTML = filtered.map(item => `
+                <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-100 flex flex-col items-center group hover:-translate-y-2 transition-all duration-300">
+                    <div class="text-gray-300 self-end font-black text-xs uppercase tracking-widest mb-2">${currentCategory}</div>
+                    <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10 tracking-tight">${item.text}</h3>
+                    
+                    <div class="w-full flex gap-3">
+                        <button onclick="runSpeech('${item.text}', this)" class="flex-1 bg-[#E64A4A] text-white py-4 rounded-3xl font-black shadow-lg hover:bg-red-700 transition flex items-center justify-center gap-2">
+                            <span class="mic-icon text-xl">🎤</span> <span>練習</span>
+                        </button>
+                        <button onclick="speak('${item.text}')" class="w-16 h-16 bg-gray-100 rounded-3xl flex items-center justify-center text-2xl hover:bg-gray-200 transition">
+                            🔊
+                        </button>
+                    </div>
+                    <div class="score-box mt-4 font-black text-2xl text-green-600 hidden">0</div>
                 </div>
-            `).reverse().join('');
+            `).join('');
         }
 
-        function selectItem(text, cat) {
-            document.getElementById('current-text').innerText = text;
-            document.getElementById('category-tag').innerText = cat;
-            document.getElementById('score-display').classList.add('hidden');
-        }
-
+        // --- 功能邏輯 ---
         function toggleBatchModal() {
             document.getElementById('batch-modal').classList.toggle('hidden');
         }
 
-        function clearAll() {
-            if(confirm("確定要刪除所有收集的單字嗎？")) {
-                items = [];
-                localStorage.setItem('phonics_hero_data', JSON.stringify(items));
-                renderList();
-            }
+        function processBatch() {
+            const text = document.getElementById('batch-text').value;
+            if (!text) return;
+            const newWords = text.split(/[,\n\r]+/).map(w => w.trim()).filter(w => w);
+            
+            newWords.forEach(w => {
+                items.push({ text: w.toLowerCase(), category: autoCategorize(w) });
+            });
+
+            localStorage.setItem('phonics_pro_v1', JSON.stringify(items));
+            document.getElementById('batch-text').value = '';
+            toggleBatchModal();
+            renderCards();
         }
 
-        /**
-         * 5. Azure Speech 智慧評測 (核心引擎)
-         */
-        async function startAssessment() {
-            const targetText = document.getElementById('current-text').innerText;
-            if (targetText === "tap a word") return alert("請先從下方選擇一個單字！");
-
-            const micBtn = document.getElementById('mic-btn');
-            const countdownEl = document.getElementById('countdown');
-            
-            // 4 秒快速倒數 (依需求修改為 3 秒顯示)
-            countdownEl.classList.remove('hidden');
-            let count = 3;
-            countdownEl.innerText = count;
-            
-            const timer = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    countdownEl.innerText = count;
-                } else {
-                    clearInterval(timer);
-                    countdownEl.classList.add('hidden');
-                    runAzureAssessment(targetText);
-                }
-            }, 800); // 稍微加快倒數節奏符合兒童心理
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-US';
+            msg.rate = 0.8;
+            window.speechSynthesis.speak(msg);
         }
 
-        function runAzureAssessment(referenceText) {
+        // --- Azure Speech 評測 ---
+        function runSpeech(refText, btn) {
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
-            speechConfig.speechRecognitionLanguage = "en-US";
-            
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                referenceText,
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                refText, 
                 SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-                SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
-                true
+                SpeechSDK.PronunciationAssessmentGranularity.Phoneme
             );
 
             const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-            pronunciationAssessmentConfig.applyTo(recognizer);
+            pronConfig.applyTo(recognizer);
 
-            // 視覺回饋
-            document.getElementById('mic-btn').classList.add('recording');
-            document.getElementById('mic-icon').innerText = "🌀";
+            btn.classList.add('animate-pulse', 'bg-gray-800');
+            btn.querySelector('.mic-icon').innerText = "⏳";
 
             recognizer.recognizeOnceAsync(result => {
-                const assessmentResult = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                const score = Math.round(res.accuracyScore);
                 
-                if (assessmentResult) {
-                    document.getElementById('score-display').classList.remove('hidden');
-                    // 取精度分數 (Accuracy Score)
-                    const score = Math.round(assessmentResult.accuracyScore);
-                    document.getElementById('score-value').innerText = score;
-                    
-                    // 簡單反饋
-                    if (score >= 80) document.getElementById('mic-icon').innerText = "🌟";
-                    else if (score >= 60) document.getElementById('mic-icon').innerText = "👍";
-                    else document.getElementById('mic-icon').innerText = "💪";
-                } else {
-                    alert("沒聽清楚，再試一次！");
-                    document.getElementById('mic-icon').innerText = "🎤";
-                }
-                
-                document.getElementById('mic-btn').classList.remove('recording');
+                const scoreBox = btn.parentElement.nextElementSibling;
+                scoreBox.innerText = `Score: ${score}`;
+                scoreBox.classList.remove('hidden');
+                document.getElementById('global-score').innerText = score;
+
+                btn.classList.remove('animate-pulse', 'bg-gray-800');
+                btn.querySelector('.mic-icon').innerText = "🎤";
                 recognizer.close();
-            }, err => {
-                console.error(err);
-                document.getElementById('mic-btn').classList.remove('recording');
-                document.getElementById('mic-icon').innerText = "🎤";
             });
         }
     </script>
