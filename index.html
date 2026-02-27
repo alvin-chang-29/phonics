@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-title" content="PhonicsHero">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/188/188987.png">
     
-    <title>Phonics Hero v5.4</title>
+    <title>Phonics Hero v5.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         const SDK_SOURCES = [
@@ -22,7 +22,7 @@
             const script = document.createElement('script');
             script.src = SDK_SOURCES[currentIdx];
             script.onload = () => {
-                document.getElementById('status-msg').innerText = "✅ 引擎就緒";
+                document.getElementById('status-msg').innerText = "✅ 引擎就緒 (v5.5)";
                 document.getElementById('start-btn').classList.remove('hidden');
             };
             script.onerror = () => {
@@ -48,8 +48,8 @@
 
     <div id="boot-screen">
         <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-widest">VERSION 5.4</p>
-        <p id="status-msg" class="mb-10 text-blue-400 font-mono animate-pulse italic">Connecting...</p>
+        <p class="text-gray-500 font-bold mb-10 text-xl tracking-widest uppercase">Version 5.5 - Diagnostic</p>
+        <p id="status-msg" class="mb-10 text-blue-400 font-mono animate-pulse italic">Initializing...</p>
         <button id="start-btn" onclick="ipadMasterLaunch()" class="hidden bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
     </div>
 
@@ -58,7 +58,7 @@
         
         <div class="mb-8 bg-black/40 p-4 rounded-3xl border border-gray-600">
             <label class="text-gray-400 text-[10px] font-bold uppercase block mb-2 px-1">Voice Profile</label>
-            <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl outline-none font-bold text-sm focus:border-red-500 border-2 border-transparent">
+            <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl outline-none font-bold text-sm border-2 border-transparent">
                 <option value="en-US-AvaNeural">👩 Ava (Child-friendly)</option>
                 <option value="en-US-AndrewNeural">👨 Andrew (Gentle)</option>
                 <option value="en-US-EmmaNeural">👧 Emma (Playful)</option>
@@ -85,7 +85,7 @@
 
         <div id="grid-container" class="flex-1 overflow-y-auto px-12 pb-24 grid grid-cols-2 xl:grid-cols-3 gap-10"></div>
 
-        <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/95 flex flex-col items-center justify-center">
+        <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/95 flex flex-col items-center justify-center text-center">
             <div id="rec-timer" class="text-[20rem] font-black text-red-600 leading-none italic">4</div>
             <p id="rec-hint" class="text-4xl font-black text-gray-400 uppercase tracking-widest animate-pulse">Ready...</p>
         </div>
@@ -101,6 +101,7 @@
         ];
 
         let azureConfig = null;
+        let globalRecognizer = null; // 全域變數防止回收
 
         async function ipadMasterLaunch() {
             try {
@@ -124,7 +125,7 @@
                 <div class="card-pokemon p-12 flex flex-col items-center justify-between">
                     <h4 class="text-8xl font-black text-gray-800 lowercase tracking-tighter">${w.t}</h4>
                     <div class="w-full mt-10 flex gap-4">
-                        <button onclick="startTraining('${w.t}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">錄音</button>
+                        <button onclick="startTraining('${w.t}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
                         <button onclick="playSample('${w.t}')" class="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center text-4xl active:bg-gray-200">🔊</button>
                     </div>
                 </div>
@@ -158,20 +159,43 @@
         }
 
         function runAssessment(targetText) {
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(targetText, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
-            const recognizer = new SpeechSDK.SpeechRecognizer(azureConfig, audioConfig);
-            pronConfig.applyTo(recognizer);
+            if (!azureConfig) return alert("系統尚未就緒，請重啟。");
 
-            recognizer.recognizeOnceAsync(result => {
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                targetText, 
+                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
+                SpeechSDK.PronunciationAssessmentGranularity.Phoneme
+            );
+            
+            globalRecognizer = new SpeechSDK.SpeechRecognizer(azureConfig, audioConfig);
+            pronConfig.applyTo(globalRecognizer);
+
+            // 設置一個超時保護
+            const timeoutId = setTimeout(() => {
+                if (globalRecognizer) {
+                    globalRecognizer.stopContinuousRecognitionAsync();
+                    showFeedback(0, true);
+                }
+            }, 8000);
+
+            globalRecognizer.recognizeOnceAsync(result => {
+                clearTimeout(timeoutId);
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                // 檢查是否成功辨識語音
+                
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech && res) {
                     showFeedback(res.accuracyScore);
                 } else {
-                    showFeedback(0, true); // 觸發「沒錄到音」提醒
+                    showFeedback(0, true); 
                 }
-                recognizer.close();
+                
+                globalRecognizer.close();
+                globalRecognizer = null;
+            }, err => {
+                clearTimeout(timeoutId);
+                alert("辨識發生錯誤，請靠近麥克風");
+                globalRecognizer.close();
+                globalRecognizer = null;
             });
         }
 
@@ -189,7 +213,7 @@
             if (noSound) {
                 comment = "No Sound? Try Again! 💪";
                 color = "bg-gray-600 text-white";
-                ttsMsg = "I didn't hear anything.";
+                ttsMsg = "I didn't hear you.";
             } else if (score >= 90) {
                 comment = "Perfect! 🌟";
                 color = "bg-green-500 text-white";
