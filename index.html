@@ -2,198 +2,251 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Phonics Hero iPad Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://aka.ms/csspeechjs-browser-sdk"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
-        body { font-family: 'Fredoka', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .sidebar-item-active { background-color: #E64A4A !important; color: white !important; }
-        .card-shadow { box-shadow: 0 8px 0px #E5E5E5; }
-        .lowercase { text-transform: lowercase; }
+        body { 
+            font-family: 'Fredoka', sans-serif; 
+            -webkit-user-select: none; 
+            overscroll-behavior: none;
+            background-color: #FDF4D0;
+        }
+        /* iPad 特有的側邊欄毛玻璃效果 */
+        .ipad-sidebar {
+            background-color: rgba(62, 62, 62, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .active-lesson {
+            background-color: #E64A4A !important;
+            box-shadow: 0 4px 15px rgba(230, 74, 74, 0.4);
+            color: white !important;
+        }
+        .card-pokemon {
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 10px 0px #E5E5E5;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .card-pokemon:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0px #E5E5E5;
+        }
+        /* 禁止 Safari 預設的長按選單 */
+        * { -webkit-touch-callout: none; }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex bg-[#FDF4D0]">
+<body class="h-screen flex overflow-hidden">
 
-    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
-        <h1 class="text-5xl mb-6 font-black text-yellow-400 italic">PHONICS HERO</h1>
-        <div id="status-msg" class="text-gray-400 mb-8 font-bold">Waiting for trainer...</div>
-        <button id="start-btn" onclick="unlockAndStart()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-16 rounded-full text-3xl shadow-2xl active:scale-95 transition-all">
-            READY TO TRAIN!
+    <div id="boot-screen" class="fixed inset-0 bg-[#1a1a1a] z-[200] flex flex-col items-center justify-center text-white">
+        <div class="mb-12 text-center">
+            <h1 class="text-6xl font-black text-yellow-400 italic mb-2 tracking-tighter">PHONICS HERO</h1>
+            <p class="text-gray-500 font-bold uppercase tracking-widest text-sm">iPad Pro Training Environment</p>
+        </div>
+        
+        <button id="btn-unlock" onclick="ipadAudioMasterUnlock()" class="group relative px-20 py-8 bg-blue-600 rounded-full transition-all active:scale-95 shadow-[0_0_40px_rgba(37,99,235,0.4)]">
+            <span class="text-3xl font-black tracking-widest relative z-10">INITIALIZE SYSTEM</span>
+            <div class="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"></div>
         </button>
-        <p class="mt-8 text-xs text-gray-600">v2.0 - iPad Safari Optimized</p>
+        
+        <div id="init-log" class="mt-8 text-xs font-mono text-gray-600">Waiting for user interaction...</div>
     </div>
 
-    <aside class="w-72 bg-[#3E3E3E] flex flex-col shadow-2xl z-20">
-        <div class="p-6 border-b border-gray-600 bg-[#2D2D2D]">
-            <span class="text-yellow-400 font-black text-xs uppercase tracking-[0.2em] block mb-3">Voice Settings</span>
-            <select id="voice-select" class="w-full bg-gray-700 text-white text-base p-3 rounded-xl outline-none border-2 border-gray-500 font-bold">
-                <option value="en-US-AvaNeural">👩‍🦰 Ava (Young)</option>
-                <option value="en-US-AndrewNeural">👨‍🦱 Andrew (Man)</option>
-                <option value="en-US-EmmaNeural">👧 Emma (Sweet)</option>
-                <option value="en-US-BrianNeural">🧔 Brian (Clear)</option>
-            </select>
+    <aside class="w-80 ipad-sidebar flex flex-col border-r border-white/10 z-50">
+        <div class="p-10">
+            <div class="bg-yellow-400 text-black px-4 py-1 rounded-lg text-[10px] font-black inline-block mb-2">MASTER VERSION</div>
+            <h2 class="text-white text-3xl font-black italic tracking-tighter">TRAINER</h2>
+            
+            <div class="mt-8 bg-black/20 p-4 rounded-2xl border border-white/10">
+                <label class="text-gray-500 text-[10px] font-bold uppercase block mb-2 px-1">Voice Profile</label>
+                <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-xl outline-none text-sm font-bold border-2 border-transparent focus:border-red-500 transition-all">
+                    <option value="en-US-AvaNeural">Ava (Young Girl)</option>
+                    <option value="en-US-AndrewNeural">Andrew (Clear Man)</option>
+                    <option value="en-US-EmmaNeural">Emma (Playful)</option>
+                    <option value="en-US-BrianNeural">Brian (Professional)</option>
+                </select>
+            </div>
         </div>
 
-        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <button onclick="changeCategory('short-a', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold sidebar-item-active">
+        <nav class="flex-1 px-6 space-y-3 overflow-y-auto pb-10">
+            <div class="text-white/30 text-[10px] font-black uppercase tracking-[0.3em] mb-4 px-2">Phonics Lessons</div>
+            <button onclick="switchCategory('short-a', this)" class="nav-item active-lesson w-full p-5 rounded-2xl flex items-center gap-4 text-gray-400 font-black transition-all">
                 <span class="text-2xl">🍎</span> Short A
             </button>
-            <button onclick="changeCategory('short-e', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="switchCategory('short-e', this)" class="nav-item w-full p-5 rounded-2xl flex items-center gap-4 text-gray-400 font-black transition-all hover:bg-white/5">
                 <span class="text-2xl">🍳</span> Short E
             </button>
-            <button onclick="changeCategory('short-i', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="switchCategory('short-i', this)" class="nav-item w-full p-5 rounded-2xl flex items-center gap-4 text-gray-400 font-black transition-all hover:bg-white/5">
                 <span class="text-2xl">🧊</span> Short I
             </button>
-            <button onclick="changeCategory('short-o', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="switchCategory('short-o', this)" class="nav-item w-full p-5 rounded-2xl flex items-center gap-4 text-gray-400 font-black transition-all hover:bg-white/5">
                 <span class="text-2xl">🐙</span> Short O
             </button>
-            <button onclick="changeCategory('short-u', this)" class="sidebar-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-transparent text-gray-300 font-bold">
+            <button onclick="switchCategory('short-u', this)" class="nav-item w-full p-5 rounded-2xl flex items-center gap-4 text-gray-400 font-black transition-all hover:bg-white/5">
                 <span class="text-2xl">☔</span> Short U
             </button>
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col overflow-hidden relative">
-        <header class="p-8 flex justify-between items-center bg-white bg-opacity-20">
-            <h2 id="cat-title" class="text-4xl font-black text-[#3E3E3E] uppercase italic">Short A</h2>
-            <div id="score-badge" class="hidden bg-green-500 text-white px-8 py-3 rounded-full font-black animate-bounce shadow-xl text-xl">
-                Score: <span id="current-score">0</span>
+    <main class="flex-1 flex flex-col relative">
+        <header class="h-32 flex justify-between items-center px-12">
+            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase">Short A</h3>
+            <div class="flex items-center gap-4">
+                <div id="score-ring" class="hidden animate-bounce bg-green-500 text-white px-8 py-3 rounded-full font-black text-xl shadow-lg">
+                    SCORE: <span id="last-score">0</span>
+                </div>
             </div>
         </header>
 
-        <div id="countdown-overlay" class="hidden absolute inset-0 bg-white bg-opacity-95 z-50 flex flex-col items-center justify-center">
-            <div id="countdown-num" class="text-[14rem] font-black text-red-600 leading-none mb-4 italic">4</div>
-            <p class="text-3xl font-bold text-gray-400 uppercase tracking-widest animate-pulse">Prepare to Speak</p>
-        </div>
-
-        <div id="card-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+        <div id="training-grid" class="flex-1 overflow-y-auto px-12 pb-20 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-10">
             </div>
+
+        <div id="rec-overlay" class="hidden absolute inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center backdrop-blur-md">
+            <div id="rec-timer" class="text-[18rem] font-black text-red-600 leading-none mb-10 italic">4</div>
+            <div class="flex items-center gap-4">
+                <div class="w-4 h-4 bg-red-600 rounded-full animate-ping"></div>
+                <span class="text-3xl font-bold text-gray-400 uppercase tracking-[0.5em]">System Listening</span>
+            </div>
+        </div>
     </main>
 
     <script>
+        // --- iPad 專用變數與設定 ---
         const AZURE_KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
         const REGION = "eastasia";
         
-        const initialWords = [
-            { text: 'cat', category: 'short-a' }, { text: 'bat', category: 'short-a' }, { text: 'hat', category: 'short-a' }, { text: 'mat', category: 'short-a' },
-            { text: 'hen', category: 'short-e' }, { text: 'pen', category: 'short-e' }, { text: 'ten', category: 'short-e' }, { text: 'red', category: 'short-e' },
-            { text: 'pig', category: 'short-i' }, { text: 'wig', category: 'short-i' }, { text: 'bin', category: 'short-i' }, { text: 'sit', category: 'short-i' },
-            { text: 'hot', category: 'short-o' }, { text: 'pot', category: 'short-o' }, { text: 'dog', category: 'short-o' }, { text: 'log', category: 'short-o' },
-            { text: 'sun', category: 'short-u' }, { text: 'run', category: 'short-u' }, { text: 'bug', category: 'short-u' }, { text: 'nut', category: 'short-u' }
+        const db = [
+            { t: 'cat', c: 'short-a' }, { t: 'bat', c: 'short-a' }, { t: 'hat', c: 'short-a' }, { t: 'mat', c: 'short-a' },
+            { t: 'hen', c: 'short-e' }, { t: 'pen', c: 'short-e' }, { t: 'ten', c: 'short-e' }, { t: 'red', c: 'short-e' },
+            { t: 'pig', category: 'short-i' }, { t: 'wig', category: 'short-i' }, { t: 'bin', category: 'short-i' }, { t: 'sit', category: 'short-i' },
+            { t: 'hot', c: 'short-o' }, { t: 'pot', c: 'short-o' }, { t: 'dog', c: 'short-o' }, { t: 'log', c: 'short-o' },
+            { t: 'sun', c: 'short-u' }, { t: 'run', c: 'short-u' }, { t: 'bug', c: 'short-u' }, { t: 'nut', c: 'short-u' }
         ];
 
         let speechConfig = null;
+        let audioCtx = null;
 
-        async function unlockAndStart() {
-            const status = document.getElementById('status-msg');
-            const btn = document.getElementById('start-btn');
-            btn.disabled = true;
-            status.innerText = "Initializing Audio & Azure...";
+        /**
+         * iPad 核心：Master Unlock
+         * 必須在同一個點擊事件中完成：1. AudioContext 啟動, 2. 麥克風請求, 3. Azure 初始化
+         */
+        async function ipadAudioMasterUnlock() {
+            const log = document.getElementById('init-log');
+            log.innerText = "Step 1: Unlocking AudioContext...";
 
             try {
-                // 1. 初始化 Azure
-                if (typeof SpeechSDK === 'undefined') {
-                    throw new Error("Azure SDK failed to load. Please check your internet.");
-                }
-                speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
-                
-                // 2. 解鎖音訊 (iPad)
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                const audioCtx = new AudioContext();
+                // 1. 解鎖 Web Audio API (iOS 必做)
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-                // 3. 測試語音合成
-                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-                synthesizer.speakTextAsync("", () => {
-                    synthesizer.close();
-                    document.getElementById('overlay').classList.add('hidden');
-                    renderCards();
-                }, (err) => {
-                    console.error(err);
-                    alert("Azure Connection Error. Please refresh.");
-                    document.getElementById('overlay').classList.add('hidden'); // 強制進入 App
-                    renderCards();
+                log.innerText = "Step 2: Requesting Microphone...";
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                log.innerText = "Step 3: Initializing Azure SDK...";
+                speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
+                speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
+
+                // 2. 測試一次發音 (靜音播放) 確保通道暢通
+                const syn = new SpeechSDK.SpeechSynthesizer(speechConfig);
+                syn.speakTextAsync("", () => {
+                    syn.close();
+                    document.getElementById('boot-screen').style.display = 'none';
+                    renderGrid('short-a');
                 });
 
             } catch (err) {
-                alert("Start Error: " + err.message);
-                document.getElementById('overlay').classList.add('hidden'); // 失敗也讓使用者進去看看
-                renderCards();
+                log.innerText = "ERROR: " + err.message;
+                alert("iPad 初始化失敗：請確保在 Safari 設定中允許麥克風權限。");
             }
         }
 
-        function changeCategory(cat, btn) {
-            document.getElementById('cat-title').innerText = cat.replace('-', ' ');
-            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('sidebar-item-active'));
-            btn.classList.add('sidebar-item-active');
-            renderCards(cat);
+        function switchCategory(cat, btn) {
+            document.getElementById('display-title').innerText = cat.replace('-', ' ');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-lesson'));
+            btn.classList.add('active-lesson');
+            renderGrid(cat);
         }
 
-        function renderCards(cat = 'short-a') {
-            const grid = document.getElementById('card-grid');
-            const filtered = initialWords.filter(i => i.category === cat);
+        function renderGrid(cat) {
+            const grid = document.getElementById('training-grid');
+            // 修正：db 結構適配
+            const filtered = db.filter(i => (i.c || i.category) === cat);
+            
             grid.innerHTML = filtered.map(item => `
-                <div class="bg-white rounded-[40px] p-8 card-shadow border-2 border-gray-50 flex flex-col items-center">
-                    <h3 class="text-7xl font-black text-[#3E3E3E] lowercase mb-10">${item.text}</h3>
-                    <div class="w-full flex gap-3">
-                        <button onclick="startTraining('${item.text}')" class="flex-1 bg-[#E64A4A] text-white py-5 rounded-3xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
-                            錄音
-                        </button>
-                        <button onclick="playTTS('${item.text}')" class="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center text-3xl active:bg-gray-200">
-                            🔊
-                        </button>
+                <div class="card-pokemon p-10 flex flex-col items-center justify-between border-2 border-transparent hover:border-red-500">
+                    <h4 class="text-8xl font-black text-gray-800 lowercase tracking-tighter">${item.t}</h4>
+                    <div class="w-full mt-12 flex gap-4">
+                        <button onclick="startiPadTraining('${item.t}')" class="flex-1 bg-red-600 text-white py-6 rounded-2xl font-black text-2xl shadow-lg active:scale-95 transition-all">錄音練習</button>
+                        <button onclick="playiPadTTS('${item.t}')" class="w-24 h-24 bg-gray-100 rounded-2xl flex items-center justify-center text-4xl active:bg-gray-200">🔊</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function playTTS(text) {
+        // --- iPad 專用發音 ---
+        function playiPadTTS(text) {
             if (!speechConfig) return;
             speechConfig.speechSynthesisVoiceName = document.getElementById('voice-select').value;
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-            synthesizer.speakTextAsync(text, () => synthesizer.close(), () => synthesizer.close());
+            
+            synthesizer.speakTextAsync(text, 
+                result => { synthesizer.close(); },
+                err => { synthesizer.close(); console.error(err); }
+            );
         }
 
-        function startTraining(refText) {
-            const overlay = document.getElementById('countdown-overlay');
-            const num = document.getElementById('countdown-num');
+        // --- iPad 專用錄音 (含 4 秒倒數) ---
+        function startiPadTraining(text) {
+            const overlay = document.getElementById('rec-overlay');
+            const timer = document.getElementById('rec-timer');
             overlay.classList.remove('hidden');
-            let timer = 4;
-            num.innerText = timer;
-            const interval = setInterval(() => {
-                timer--;
-                if (timer > 0) num.innerText = timer;
-                else {
-                    clearInterval(interval);
+            
+            let count = 4;
+            timer.innerText = count;
+
+            const countdown = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    timer.innerText = count;
+                } else {
+                    clearInterval(countdown);
                     overlay.classList.add('hidden');
-                    runAssessment(refText);
+                    runiPadAssessment(text);
                 }
             }, 1000);
         }
 
-        function runAssessment(refText) {
+        function runiPadAssessment(text) {
+            // 每次重新建立以確保在 iPad 上不會因為長時間沒用而被回收
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                refText, 
+                text, 
                 SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
                 SpeechSDK.PronunciationAssessmentGranularity.Phoneme
             );
+
             const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
+
             recognizer.recognizeOnceAsync(result => {
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                if (res && res.accuracyScore !== undefined) showScore(Math.round(res.accuracyScore));
+                if (res && res.accuracyScore !== undefined) {
+                    const score = Math.round(res.accuracyScore);
+                    const ring = document.getElementById('score-ring');
+                    document.getElementById('last-score').innerText = score;
+                    ring.classList.remove('hidden');
+                    setTimeout(() => ring.classList.add('hidden'), 3000);
+                } else {
+                    alert("錄音失敗：請靠近麥克風並大聲朗讀。");
+                }
                 recognizer.close();
-            }, () => recognizer.close());
-        }
-
-        function showScore(score) {
-            const badge = document.getElementById('score-badge');
-            document.getElementById('current-score').innerText = score;
-            badge.classList.remove('hidden');
-            setTimeout(() => badge.classList.add('hidden'), 3000);
+            }, err => {
+                recognizer.close();
+                console.error(err);
+            });
         }
     </script>
 </body>
