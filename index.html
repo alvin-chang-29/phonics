@@ -6,7 +6,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Hero v6.4</title>
+    <title>Phonics Hero v6.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
     <style>
@@ -24,20 +24,8 @@
 
     <div id="boot-screen">
         <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.4 - FINAL</p>
-        
-        <div id="error-diag" class="hidden mb-10 p-8 bg-red-900/40 border-2 border-red-500 rounded-[40px] text-center max-w-lg">
-            <h4 class="text-2xl font-black text-red-100 mb-4">麥克風權限錯誤</h4>
-            <p class="text-sm text-red-200 leading-relaxed mb-6">
-                請執行以下步驟：<br>
-                1. 在 Safari 點擊「AA」>「網站設定」<br>
-                2. 將麥克風設為「允許」<br>
-                3. 確認運作後，重新「加入主畫面」
-            </p>
-            <button onclick="location.reload()" class="bg-white text-black px-10 py-3 rounded-full font-black">重試診斷</button>
-        </div>
-
-        <button id="launch-btn" onclick="ipadMasterLaunch()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">INITIALIZE ENGINE</button>
+        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.6 - DIRECT START</p>
+        <button onclick="ipadMasterLaunch()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
     </div>
 
     <aside class="ipad-sidebar flex flex-col p-6 text-white z-50 overflow-y-auto">
@@ -47,9 +35,6 @@
             <div class="bg-black/40 p-5 rounded-3xl border border-gray-600">
                 <label class="text-gray-400 text-[10px] font-black uppercase block mb-3 px-1">Speech Speed: <span id="rate-display" class="text-yellow-400">1.0</span>x</label>
                 <input type="range" id="rate-slider" min="0.8" max="1.1" step="0.05" value="1.0" oninput="updateSpeed(this.value)" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500">
-                <div class="flex justify-between text-[10px] text-gray-500 mt-2">
-                    <span>-20%</span><span>NORMAL</span><span>+10%</span>
-                </div>
             </div>
 
             <div class="bg-black/40 p-5 rounded-3xl border border-gray-600">
@@ -66,39 +51,28 @@
 
     <main class="flex-1 flex flex-col relative p-12 overflow-y-auto bg-[#FDF4D0]">
         <header class="h-24 flex justify-between items-center mb-10">
-            <h3 id="display-title" class="text-6xl font-black text-gray-800 italic uppercase">Loading...</h3>
+            <h3 id="display-title" class="text-6xl font-black text-gray-800 italic uppercase">Category</h3>
             <div id="feedback-box" class="hidden flex items-center gap-4">
-                <div id="feedback-text" class="feedback-pop px-8 py-4 rounded-full font-black text-3xl shadow-xl"></div>
+                <div id="feedback-text" class="feedback-pop px-10 py-4 rounded-full font-black text-3xl shadow-xl"></div>
                 <div class="bg-white px-6 py-4 rounded-full font-black text-3xl border-4 border-yellow-400"><span id="score-val">--</span></div>
             </div>
         </header>
         <div id="grid-container" class="grid grid-cols-2 xl:grid-cols-3 gap-10 pb-20"></div>
     </main>
 
-    <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/95 flex flex-col items-center justify-center">
-        <div id="rec-timer" class="text-[22rem] font-black text-red-600 leading-none italic">4</div>
-        <p class="text-4xl font-black text-gray-400 uppercase tracking-[0.5em] animate-pulse">Recording Started...</p>
+    <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/90 flex flex-col items-center justify-center">
+        <div class="w-64 h-64 bg-red-600 rounded-full flex items-center justify-center animate-pulse shadow-[0_0_60px_rgba(220,38,38,0.5)]">
+            <span class="text-white text-9xl font-black">🎤</span>
+        </div>
+        <p class="mt-12 text-5xl font-black text-red-600 uppercase italic tracking-tighter">Speak Now!</p>
+        <p id="target-word-display" class="mt-4 text-3xl font-bold text-gray-400 lowercase"></p>
     </div>
 
     <script>
         const CONFIG = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
+        const RAW_WORDS = ['cat', 'bat', 'hat', 'cake', 'lake', 'rain', 'day', 'bee', 'seed', 'leaf', 'bike', 'hike', 'light', 'bone', 'cone', 'boat', 'blue', 'glue', 'cute', 'duck', 'bus', 'sun', 'mop', 'top', 'pot', 'dog', 'log'];
         
-        // 此列表包含所有圖片中看到的單字
-        const RAW_WORDS = [
-            'cat', 'bat', 'hat', 'mat', 'fan', 'can', 'pan', 'van', 'map', 'cap', 'tap', 'nap', 'bag', 'tag', 'rag', 'wag', 'ham', 'jam', 'yam', 'dam', 'dad', 'sad', 'mad', 'bad',
-            'hen', 'pen', 'ten', 'men', 'red', 'bed', 'jet', 'net', 'wet', 'pet',
-            'pig', 'wig', 'dig', 'bin', 'fin', 'pin', 'win', 'sit', 'hit', 'six', 'sick',
-            'hot', 'pot', 'cot', 'dot', 'hop', 'mop', 'top', 'cop', 'dog', 'log', 'ox', 'box',
-            'duck', 'bus', 'nut', 'bug', 'sun', 'run', 'gun', 'tub', 'cup', 'jug', 'rug',
-            'cake', 'lake', 'bake', 'rake', 'fake', 'make', 'take', 'mail', 'tail', 'rain', 'day', 'say',
-            'bee', 'tree', 'seed', 'leaf', 'bean', 'meat',
-            'bike', 'hike', 'like', 'kite', 'bite', 'ride', 'light', 'night',
-            'bone', 'cone', 'rope', 'hope', 'boat', 'coat', 'goat', 'road',
-            'blue', 'glue', 'true', 'flute', 'cute', 'duke'
-        ];
-
         let azureConfig = null;
-        let globalRecognizer = null;
         let speechRate = 1.0;
 
         function updateSpeed(val) {
@@ -111,16 +85,13 @@
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 const ctx = new AudioCtx();
                 if (ctx.state === 'suspended') await ctx.resume();
-
                 await navigator.mediaDevices.getUserMedia({ audio: true });
                 azureConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.KEY, CONFIG.REGION);
-                
                 document.getElementById('boot-screen').style.display = 'none';
                 renderSidebar();
                 renderGrid('short-a');
             } catch (err) {
-                document.getElementById('error-diag').classList.remove('hidden');
-                document.getElementById('launch-btn').classList.add('hidden');
+                alert("存取失敗！請確認 Safari 內已將麥克風設為「允許」。");
             }
         }
 
@@ -162,7 +133,7 @@
                 <div class="card-pokemon p-12 flex flex-col items-center">
                     <h4 class="text-8xl font-black text-gray-800 lowercase mb-12">${w}</h4>
                     <div class="w-full flex gap-5">
-                        <button onclick="startTraining('${w}')" class="flex-1 bg-red-600 text-white py-7 rounded-[30px] font-black text-3xl active:scale-95 shadow-lg">練習</button>
+                        <button onclick="startTrainingDirect('${w}')" class="flex-1 bg-red-600 text-white py-7 rounded-[30px] font-black text-3xl active:scale-95 shadow-lg">練習</button>
                         <button onclick="playSample('${w}')" class="w-24 h-24 bg-gray-100 rounded-[30px] flex items-center justify-center text-5xl active:bg-gray-200">🔊</button>
                     </div>
                 </div>
@@ -177,33 +148,26 @@
             syn.speakSsmlAsync(ssml, () => syn.close());
         }
 
-        function startTraining(text) {
-            const overlay = document.getElementById('rec-overlay');
-            const timer = document.getElementById('rec-timer');
-            overlay.classList.remove('hidden');
+        // --- 直接啟動錄音 ---
+        function startTrainingDirect(text) {
+            document.getElementById('target-word-display').innerText = `Target: ${text}`;
+            document.getElementById('rec-overlay').classList.remove('hidden');
 
-            // 預熱錄音
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
-            globalRecognizer = new SpeechSDK.SpeechRecognizer(azureConfig, audioConfig);
-            pronConfig.applyTo(globalRecognizer);
-            globalRecognizer.startContinuousRecognitionAsync();
+            const recognizer = new SpeechSDK.SpeechRecognizer(azureConfig, audioConfig);
+            pronConfig.applyTo(recognizer);
 
-            let c = 4;
-            timer.innerText = c;
-            const itv = setInterval(() => {
-                c--;
-                if(c > 0) timer.innerText = c;
-                else {
-                    clearInterval(itv);
-                    overlay.classList.add('hidden');
-                    globalRecognizer.recognizeOnceAsync(result => {
-                        const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                        showFeedback(res ? res.accuracyScore : 0, !res);
-                        globalRecognizer.close();
-                    });
-                }
-            }, 1000);
+            recognizer.recognizeOnceAsync(result => {
+                const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                document.getElementById('rec-overlay').classList.add('hidden');
+                showFeedback(res ? res.accuracyScore : 0, !res);
+                recognizer.close();
+            }, err => {
+                document.getElementById('rec-overlay').classList.add('hidden');
+                alert("錄音中斷");
+                recognizer.close();
+            });
         }
 
         function showFeedback(score, noSound) {
