@@ -1,6 +1,6 @@
 {
   "short_name": "PhonicsHero",
-  "name": "Phonics Hero Master",
+  "name": "Phonics Hero Master Trainer",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/188/188987.png",
@@ -8,7 +8,7 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": "index.html",
+  "start_url": "index.html?v=6.4",
   "display": "standalone",
   "background_color": "#FDF4D0",
   "theme_color": "#CC0000",
