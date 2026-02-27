@@ -1,51 +1,318 @@
-// 控制彈窗開關
-function toggleBatchModal() {
-    const modal = document.getElementById('batch-modal');
-    modal.classList.toggle('hidden');
-}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonics Hero - 寶可夢發音訓練師</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://aka.ms/csspeechjs-browser-sdk"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
+        
+        :root {
+            --poke-yellow: #FFDE00;
+            --poke-blue: #3B4CCA;
+            --poke-red: #CC0000;
+            --poke-amber: #FFB300;
+        }
 
-// 核心批次處理邏輯
-async function processBatch() {
-    const fileInput = document.getElementById('file-input');
-    const textArea = document.getElementById('batch-text');
-    let rawContent = "";
+        body { 
+            font-family: 'Fredoka', sans-serif; 
+            background-color: var(--poke-yellow);
+            color: #333;
+        }
 
-    // 1. 優先處理檔案
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        rawContent = await file.text();
-    } 
-    // 2. 若沒檔案則處理 Textarea
-    else if (textArea.value.trim() !== "") {
-        rawContent = textArea.value;
-    } else {
-        alert("請選擇檔案或輸入文字內容！");
-        return;
-    }
+        .pokemon-card { 
+            border: 8px solid var(--poke-red); 
+            background-color: var(--poke-amber); 
+            border-radius: 30px;
+            box-shadow: 0 10px 0px #8b0000;
+        }
 
-    // 3. 解析內容 (支援換行或逗號區隔)
-    // 使用正規表達式 [,\n\r]+ 分割，並過濾掉空白項
-    const rawList = rawContent.split(/[,\n\r]+/).map(item => item.trim()).filter(item => item !== "");
+        .tab-active { 
+            background-color: var(--poke-red); 
+            color: white; 
+            transform: translateY(-4px);
+        }
 
-    // 4. 迭代加入系統
-    rawList.forEach(text => {
-        const lowerText = text.toLowerCase();
-        const newItem = {
-            id: Date.now() + Math.random(), // 避免批次加入時 ID 重複
-            text: lowerText,
-            category: autoCategorize(lowerText), // 自動歸類邏輯 (LongA, LongE, ShortA)
-            type: currentMode // 根據當前分頁歸類 (單字或例句)
-        };
-        items.push(newItem);
-    });
+        .lowercase { text-transform: lowercase; }
 
-    // 5. 儲存並更新介面
-    localStorage.setItem('phonics_data', JSON.stringify(items));
-    renderList();
-    
-    // 6. 清空並關閉
-    fileInput.value = "";
-    textArea.value = "";
-    toggleBatchModal();
-    alert(`成功匯入 ${rawList.length} 個項目！`);
-}
+        /* 錄音動畫 */
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(204, 0, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
+        }
+        .recording { animation: pulse-red 1.5s infinite; }
+    </style>
+</head>
+<body class="p-4 pb-20">
+
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-90 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
+        <div class="w-32 h-32 mb-6 bg-white rounded-full border-8 border-gray-300 flex items-center justify-center">
+            <div class="w-full h-1 bg-gray-300 absolute"></div>
+            <div class="w-8 h-8 bg-white border-4 border-gray-300 rounded-full z-10"></div>
+            <span class="text-6xl animate-bounce">⚽</span>
+        </div>
+        <h1 class="text-4xl mb-2 font-bold text-yellow-400">PHONICS HERO</h1>
+        <p class="mb-8 text-gray-300">點擊下方按鈕啟動麥克風並開始訓練</p>
+        <button onclick="initApp()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full text-2xl shadow-xl transition-all active:scale-95">
+            進入道館
+        </button>
+    </div>
+
+    <div id="main-content" class="max-w-md mx-auto hidden">
+        
+        <div class="flex mb-0 gap-1">
+            <button id="tab-word" onclick="switchTab('word')" class="flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all tab-active">單字卡</button>
+            <button id="tab-sentence" onclick="switchTab('sentence')" class="flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all bg-orange-200">例句練習</button>
+        </div>
+
+        <div class="pokemon-card p-6 mb-6">
+            <div class="mb-6 flex gap-2">
+                <input type="text" id="input-word" placeholder="輸入內容..." class="flex-1 p-3 rounded-xl border-4 border-blue-800 lowercase text-lg focus:outline-none">
+                <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-md active:bg-blue-800">ADD</button>
+                <button onclick="toggleBatchModal()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold shadow-md active:bg-green-800">BATCH</button>
+            </div>
+
+            <div id="display-area" class="text-center py-8 min-h-[300px] flex flex-col items-center justify-between border-4 border-dashed border-white border-opacity-50 rounded-2xl">
+                <div>
+                    <p id="category-tag" class="inline-block text-xs bg-white px-3 py-1 rounded-full font-bold text-red-700 mb-4 uppercase tracking-tighter shadow-sm">ready?</p>
+                    <h2 id="current-text" class="text-6xl font-black text-blue-900 drop-shadow-sm lowercase px-2 leading-tight">tap a word</h2>
+                </div>
+                
+                <div class="relative mt-8">
+                    <div id="countdown" class="absolute -top-14 left-1/2 -translate-x-1/2 text-5xl font-black text-red-600 drop-shadow-md hidden">3</div>
+                    <button id="mic-btn" onclick="startAssessment()" class="bg-white p-8 rounded-full shadow-xl border-8 border-white transition-transform active:scale-90">
+                        <span id="mic-icon" class="text-5xl">🎤</span>
+                    </button>
+                </div>
+                
+                <div id="score-display" class="mt-6 bg-white bg-opacity-30 rounded-lg px-6 py-2 hidden">
+                    <span class="text-blue-900 font-bold">Accuracy: </span>
+                    <span id="score-value" class="text-3xl font-black text-red-700">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <div class="flex justify-between items-center mb-4 border-b-4 border-red-800 pb-1">
+                <h3 class="font-bold text-red-800 text-xl italic">COLLECTION</h3>
+                <button onclick="clearAll()" class="text-xs text-red-700 font-bold underline">清除全部</button>
+            </div>
+            <div id="list-items" class="grid grid-cols-1 gap-3"></div>
+        </div>
+    </div>
+
+    <div id="batch-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm border-8 border-yellow-400">
+            <h3 class="text-2xl font-bold text-blue-900 mb-4 flex items-center">
+                <span class="mr-2">🎒</span> 批次載入單字
+            </h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-600 mb-1 italic">方法 1: 上傳 TXT 檔案</label>
+                <input type="file" id="file-input" accept=".txt" class="w-full text-xs border-2 border-dashed border-gray-300 p-2 rounded-lg">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-600 mb-1 italic">方法 2: 貼上文字 (逗號區隔)</label>
+                <textarea id="batch-text" rows="4" placeholder="apple, cake, bike, lake..." class="w-full p-3 border-2 border-gray-200 rounded-xl lowercase focus:border-blue-500 outline-none text-sm"></textarea>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="processBatch()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition">開始匯入</button>
+                <button onclick="toggleBatchModal()" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 1. 初始化與全域變數
+         */
+        const AZURE_KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
+        const REGION = "eastasia";
+        let items = JSON.parse(localStorage.getItem('phonics_hero_data')) || [];
+        let currentMode = 'word';
+
+        function initApp() {
+            document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            renderList();
+        }
+
+        /**
+         * 2. 自動歸類邏輯 (AI 邏輯實作)
+         */
+        function autoCategorize(text) {
+            const val = text.toLowerCase().trim();
+            // 長母音 A: 結尾是 e (a_e) 或包含 ai, ay
+            if (val.match(/a[a-z]e$/) || val.includes('ai') || val.includes('ay')) return 'long-A';
+            // 長母音 E: 包含 ee, ea
+            if (val.includes('ee') || val.includes('ea')) return 'long-E';
+            // 長母音 I: 結尾是 i_e 或包含 igh
+            if (val.match(/i[a-z]e$/) || val.includes('igh')) return 'long-I';
+            // 預設
+            return (currentMode === 'word') ? 'short-A' : 'sentence';
+        }
+
+        /**
+         * 3. 資料處理 (單筆 & 批次)
+         */
+        function addItem() {
+            const input = document.getElementById('input-word');
+            if (!input.value) return;
+            saveItem(input.value);
+            input.value = '';
+            renderList();
+        }
+
+        async function processBatch() {
+            const fileInput = document.getElementById('file-input');
+            const textArea = document.getElementById('batch-text');
+            let content = "";
+
+            if (fileInput.files.length > 0) {
+                content = await fileInput.files[0].text();
+            } else if (textArea.value.trim()) {
+                content = textArea.value;
+            } else {
+                return alert("請輸入文字或選擇檔案");
+            }
+
+            // 解析換行或逗號
+            const list = content.split(/[,\n\r]+/).map(i => i.trim()).filter(i => i !== "");
+            list.forEach(text => saveItem(text));
+
+            localStorage.setItem('phonics_hero_data', JSON.stringify(items));
+            fileInput.value = "";
+            textArea.value = "";
+            toggleBatchModal();
+            renderList();
+        }
+
+        function saveItem(text) {
+            items.push({
+                id: Date.now() + Math.random(),
+                text: text.toLowerCase(),
+                category: autoCategorize(text),
+                type: currentMode
+            });
+            localStorage.setItem('phonics_hero_data', JSON.stringify(items));
+        }
+
+        /**
+         * 4. UI 渲染與互動
+         */
+        function switchTab(mode) {
+            currentMode = mode;
+            document.getElementById('tab-word').className = `flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all ${mode==='word'?'tab-active':'bg-orange-200'}`;
+            document.getElementById('tab-sentence').className = `flex-1 py-3 font-bold rounded-t-2xl border-t-4 border-l-4 border-r-4 border-red-800 transition-all ${mode==='sentence'?'tab-active':'bg-orange-200'}`;
+            renderList();
+        }
+
+        function renderList() {
+            const container = document.getElementById('list-items');
+            const filtered = items.filter(i => i.type === currentMode);
+            container.innerHTML = filtered.map(item => `
+                <div onclick="selectItem('${item.text}', '${item.category}')" class="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-gray-200 flex justify-between items-center cursor-pointer active:scale-95 transition-transform">
+                    <span class="font-bold text-xl text-blue-900 lowercase">${item.text}</span>
+                    <span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded font-black uppercase">${item.category}</span>
+                </div>
+            `).reverse().join('');
+        }
+
+        function selectItem(text, cat) {
+            document.getElementById('current-text').innerText = text;
+            document.getElementById('category-tag').innerText = cat;
+            document.getElementById('score-display').classList.add('hidden');
+        }
+
+        function toggleBatchModal() {
+            document.getElementById('batch-modal').classList.toggle('hidden');
+        }
+
+        function clearAll() {
+            if(confirm("確定要刪除所有收集的單字嗎？")) {
+                items = [];
+                localStorage.setItem('phonics_hero_data', JSON.stringify(items));
+                renderList();
+            }
+        }
+
+        /**
+         * 5. Azure Speech 智慧評測 (核心引擎)
+         */
+        async function startAssessment() {
+            const targetText = document.getElementById('current-text').innerText;
+            if (targetText === "tap a word") return alert("請先從下方選擇一個單字！");
+
+            const micBtn = document.getElementById('mic-btn');
+            const countdownEl = document.getElementById('countdown');
+            
+            // 4 秒快速倒數 (依需求修改為 3 秒顯示)
+            countdownEl.classList.remove('hidden');
+            let count = 3;
+            countdownEl.innerText = count;
+            
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownEl.innerText = count;
+                } else {
+                    clearInterval(timer);
+                    countdownEl.classList.add('hidden');
+                    runAzureAssessment(targetText);
+                }
+            }, 800); // 稍微加快倒數節奏符合兒童心理
+        }
+
+        function runAzureAssessment(referenceText) {
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, REGION);
+            speechConfig.speechRecognitionLanguage = "en-US";
+            
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                referenceText,
+                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+                SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
+                true
+            );
+
+            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+            pronunciationAssessmentConfig.applyTo(recognizer);
+
+            // 視覺回饋
+            document.getElementById('mic-btn').classList.add('recording');
+            document.getElementById('mic-icon').innerText = "🌀";
+
+            recognizer.recognizeOnceAsync(result => {
+                const assessmentResult = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                
+                if (assessmentResult) {
+                    document.getElementById('score-display').classList.remove('hidden');
+                    // 取精度分數 (Accuracy Score)
+                    const score = Math.round(assessmentResult.accuracyScore);
+                    document.getElementById('score-value').innerText = score;
+                    
+                    // 簡單反饋
+                    if (score >= 80) document.getElementById('mic-icon').innerText = "🌟";
+                    else if (score >= 60) document.getElementById('mic-icon').innerText = "👍";
+                    else document.getElementById('mic-icon').innerText = "💪";
+                } else {
+                    alert("沒聽清楚，再試一次！");
+                    document.getElementById('mic-icon').innerText = "🎤";
+                }
+                
+                document.getElementById('mic-btn').classList.remove('recording');
+                recognizer.close();
+            }, err => {
+                console.error(err);
+                document.getElementById('mic-btn').classList.remove('recording');
+                document.getElementById('mic-icon').innerText = "🎤";
+            });
+        }
+    </script>
+</body>
+</html>
