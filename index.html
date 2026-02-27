@@ -6,13 +6,13 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Hero v6.7</title>
+    <title>Phonics Hero v6.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
         body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-        .ipad-sidebar { background-color: #2D2D2D; width: 300px; flex-shrink: 0; }
+        .ipad-sidebar { background-color: #2D2D2D; width: 280px; flex-shrink: 0; }
         .active-lesson { background-color: #CC0000 !important; color: white !important; }
         .card-pokemon { background: white; border-radius: 40px; box-shadow: 0 10px 0 #E5E5E5; border: 2px solid #F3F4F6; }
         #boot-screen { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
@@ -22,20 +22,20 @@
 
     <div id="boot-screen">
         <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.7 - MASTER FIX</p>
-        <button onclick="systemLaunchSequence()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
+        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.8 - RECOVERY</p>
+        <button onclick="ipadMasterLaunch()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
     </div>
 
     <aside class="ipad-sidebar flex flex-col p-6 text-white z-50">
         <h2 class="text-2xl font-black mb-6 italic text-yellow-400 text-center border-b border-gray-700 pb-4">TRAINER</h2>
         <div class="space-y-6 mb-8">
-            <div class="bg-black/40 p-4 rounded-3xl border border-gray-600 text-xs">
-                <label class="text-gray-400 font-bold block mb-2 px-1">Speed: <span id="rate-display">1.0</span>x</label>
+            <div class="bg-black/40 p-4 rounded-3xl border border-gray-600">
+                <label class="text-gray-400 text-[10px] font-bold uppercase block mb-2 px-1">Speech Speed: <span id="rate-display">1.0</span>x</label>
                 <input type="range" id="rate-slider" min="0.8" max="1.1" step="0.05" value="1.0" oninput="updateSpeed(this.value)" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500">
             </div>
             <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl outline-none font-bold text-sm">
-                <option value="en-US-AvaNeural">Ava</option>
-                <option value="en-US-AndrewNeural">Andrew</option>
+                <option value="en-US-AvaNeural">👩 Ava</option>
+                <option value="en-US-AndrewNeural">👨 Andrew</option>
             </select>
         </div>
         <nav id="nav-container" class="space-y-3 overflow-y-auto"></nav>
@@ -43,18 +43,13 @@
 
     <main class="flex-1 p-12 overflow-y-auto relative">
         <header class="h-24 flex justify-between items-center mb-10">
-            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase tracking-tighter">Category</h3>
+            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase">Category</h3>
             <div id="feedback-box" class="hidden flex items-center gap-4">
                 <div id="feedback-text" class="px-8 py-3 rounded-full font-black text-2xl shadow-lg"></div>
             </div>
         </header>
         
         <div id="grid-container" class="grid grid-cols-2 xl:grid-cols-3 gap-10"></div>
-
-        <div id="mini-rec" class="hidden fixed bottom-10 right-10 bg-red-600 text-white p-6 rounded-full shadow-2xl animate-pulse flex items-center gap-4 z-[100]">
-            <span class="text-3xl">🎤</span>
-            <span class="font-black text-xl uppercase italic">Listening...</span>
-        </div>
     </main>
 
     <script>
@@ -66,28 +61,20 @@
 
         function updateSpeed(v) { speechRate = v; document.getElementById('rate-display').innerText = v; }
 
-        async function systemLaunchSequence() {
+        async function ipadMasterLaunch() {
             try {
-                // 1. 喚醒 AudioContext
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 const ctx = new AudioCtx();
                 if (ctx.state === 'suspended') await ctx.resume();
 
-                // 2. 核心修正：主動枚舉設備 (iPad 權限喚醒秘訣)
-                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-                    await navigator.mediaDevices.enumerateDevices();
-                }
-
-                // 3. 嘗試靜默錄音請求
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(t => t.stop()); // 拿到權限後立刻關閉，避免耗電
-
+                await navigator.mediaDevices.getUserMedia({ audio: true });
                 speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE.KEY, AZURE.REGION);
+                
                 document.getElementById('boot-screen').style.display = 'none';
                 renderSidebar();
                 renderGrid('short-a');
             } catch (err) {
-                alert("權限診斷：請檢查 iPad「設定」>「Safari」>「麥克風」是否為「允許」。\n錯誤代碼：" + err.name);
+                alert("存取失敗！請點擊『AA』確認麥克風權限已改為『允許』。");
             }
         }
 
@@ -125,7 +112,7 @@
                 <div class="card-pokemon p-12 flex flex-col items-center">
                     <h4 class="text-8xl font-black text-gray-800 mb-10 lowercase">${w}</h4>
                     <div class="w-full flex gap-4">
-                        <button onclick="startTraining('${w}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
+                        <button onclick="startTraining('${w}', this)" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
                         <button onclick="playVoice('${w}')" class="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center text-4xl">🔊</button>
                     </div>
                 </div>
@@ -140,24 +127,37 @@
             syn.speakSsmlAsync(ssml, () => syn.close());
         }
 
-        function startTraining(text) {
-            const miniRec = document.getElementById('mini-rec');
-            miniRec.classList.remove('hidden');
+        function startTraining(text, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Wait...";
+            btn.disabled = true;
 
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
-            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-            pronConfig.applyTo(recognizer);
+            // 1秒緩衝，確保硬體穩定
+            setTimeout(() => {
+                btn.innerText = "Listening...";
+                btn.classList.replace('bg-red-600', 'bg-orange-500');
 
-            recognizer.recognizeOnceAsync(result => {
-                miniRec.classList.add('hidden');
-                const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                showFeedback(res ? res.accuracyScore : 0);
-                recognizer.close();
-            }, err => {
-                miniRec.classList.add('hidden');
-                recognizer.close();
-            });
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
+                const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                pronConfig.applyTo(recognizer);
+
+                recognizer.recognizeOnceAsync(result => {
+                    const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                    showFeedback(res ? res.accuracyScore : 0);
+                    
+                    // 恢復按鈕狀態
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    btn.classList.replace('bg-orange-500', 'bg-red-600');
+                    recognizer.close();
+                }, err => {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    btn.classList.replace('bg-orange-500', 'bg-red-600');
+                    recognizer.close();
+                });
+            }, 1000);
         }
 
         function showFeedback(score) {
