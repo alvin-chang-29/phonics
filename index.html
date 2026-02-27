@@ -6,101 +6,95 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Hero v6.6</title>
+    <title>Phonics Hero v6.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
         body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; }
         .ipad-sidebar { background-color: #2D2D2D; width: 300px; flex-shrink: 0; }
-        .active-lesson { background-color: #CC0000 !important; color: white !important; transform: scale(1.05); }
-        .card-pokemon { background: white; border-radius: 40px; box-shadow: 0 10px 0 #E5E5E5; border: 2px solid #F3F4F6; transition: 0.2s; }
+        .active-lesson { background-color: #CC0000 !important; color: white !important; }
+        .card-pokemon { background: white; border-radius: 40px; box-shadow: 0 10px 0 #E5E5E5; border: 2px solid #F3F4F6; }
         #boot-screen { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .feedback-pop { animation: popScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popScale { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="h-screen flex">
 
     <div id="boot-screen">
         <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.6 - DIRECT START</p>
-        <button onclick="ipadMasterLaunch()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
+        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.7 - MASTER FIX</p>
+        <button onclick="systemLaunchSequence()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
     </div>
 
-    <aside class="ipad-sidebar flex flex-col p-6 text-white z-50 overflow-y-auto">
-        <h2 class="text-2xl font-black mb-6 italic text-yellow-400 text-center border-b border-gray-700 pb-4">TRAINER HUB</h2>
-        
+    <aside class="ipad-sidebar flex flex-col p-6 text-white z-50">
+        <h2 class="text-2xl font-black mb-6 italic text-yellow-400 text-center border-b border-gray-700 pb-4">TRAINER</h2>
         <div class="space-y-6 mb-8">
-            <div class="bg-black/40 p-5 rounded-3xl border border-gray-600">
-                <label class="text-gray-400 text-[10px] font-black uppercase block mb-3 px-1">Speech Speed: <span id="rate-display" class="text-yellow-400">1.0</span>x</label>
+            <div class="bg-black/40 p-4 rounded-3xl border border-gray-600 text-xs">
+                <label class="text-gray-400 font-bold block mb-2 px-1">Speed: <span id="rate-display">1.0</span>x</label>
                 <input type="range" id="rate-slider" min="0.8" max="1.1" step="0.05" value="1.0" oninput="updateSpeed(this.value)" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500">
             </div>
-
-            <div class="bg-black/40 p-5 rounded-3xl border border-gray-600">
-                <label class="text-gray-400 text-[10px] font-black uppercase block mb-3 px-1">Voice Profile</label>
-                <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl outline-none font-bold text-sm">
-                    <option value="en-US-AvaNeural">👩 Ava (Standard)</option>
-                    <option value="en-US-AndrewNeural">👨 Andrew (Gentle)</option>
-                </select>
-            </div>
+            <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl outline-none font-bold text-sm">
+                <option value="en-US-AvaNeural">Ava</option>
+                <option value="en-US-AndrewNeural">Andrew</option>
+            </select>
         </div>
-
-        <nav id="nav-container" class="space-y-3 pr-2"></nav>
+        <nav id="nav-container" class="space-y-3 overflow-y-auto"></nav>
     </aside>
 
-    <main class="flex-1 flex flex-col relative p-12 overflow-y-auto bg-[#FDF4D0]">
+    <main class="flex-1 p-12 overflow-y-auto relative">
         <header class="h-24 flex justify-between items-center mb-10">
-            <h3 id="display-title" class="text-6xl font-black text-gray-800 italic uppercase">Category</h3>
+            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase tracking-tighter">Category</h3>
             <div id="feedback-box" class="hidden flex items-center gap-4">
-                <div id="feedback-text" class="feedback-pop px-10 py-4 rounded-full font-black text-3xl shadow-xl"></div>
-                <div class="bg-white px-6 py-4 rounded-full font-black text-3xl border-4 border-yellow-400"><span id="score-val">--</span></div>
+                <div id="feedback-text" class="px-8 py-3 rounded-full font-black text-2xl shadow-lg"></div>
             </div>
         </header>
-        <div id="grid-container" class="grid grid-cols-2 xl:grid-cols-3 gap-10 pb-20"></div>
+        
+        <div id="grid-container" class="grid grid-cols-2 xl:grid-cols-3 gap-10"></div>
+
+        <div id="mini-rec" class="hidden fixed bottom-10 right-10 bg-red-600 text-white p-6 rounded-full shadow-2xl animate-pulse flex items-center gap-4 z-[100]">
+            <span class="text-3xl">🎤</span>
+            <span class="font-black text-xl uppercase italic">Listening...</span>
+        </div>
     </main>
 
-    <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/90 flex flex-col items-center justify-center">
-        <div class="w-64 h-64 bg-red-600 rounded-full flex items-center justify-center animate-pulse shadow-[0_0_60px_rgba(220,38,38,0.5)]">
-            <span class="text-white text-9xl font-black">🎤</span>
-        </div>
-        <p class="mt-12 text-5xl font-black text-red-600 uppercase italic tracking-tighter">Speak Now!</p>
-        <p id="target-word-display" class="mt-4 text-3xl font-bold text-gray-400 lowercase"></p>
-    </div>
-
     <script>
-        const CONFIG = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
-        const RAW_WORDS = ['cat', 'bat', 'hat', 'cake', 'lake', 'rain', 'day', 'bee', 'seed', 'leaf', 'bike', 'hike', 'light', 'bone', 'cone', 'boat', 'blue', 'glue', 'cute', 'duck', 'bus', 'sun', 'mop', 'top', 'pot', 'dog', 'log'];
+        const AZURE = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
+        const WORDS = ['cat', 'bat', 'hat', 'cake', 'lake', 'rain', 'bee', 'seed', 'bike', 'hike', 'bone', 'cone', 'blue', 'glue', 'duck', 'bus', 'sun', 'mop', 'top', 'pot'];
         
-        let azureConfig = null;
+        let speechConfig = null;
         let speechRate = 1.0;
 
-        function updateSpeed(val) {
-            speechRate = parseFloat(val);
-            document.getElementById('rate-display').innerText = val;
-        }
+        function updateSpeed(v) { speechRate = v; document.getElementById('rate-display').innerText = v; }
 
-        async function ipadMasterLaunch() {
+        async function systemLaunchSequence() {
             try {
+                // 1. 喚醒 AudioContext
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 const ctx = new AudioCtx();
                 if (ctx.state === 'suspended') await ctx.resume();
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-                azureConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.KEY, CONFIG.REGION);
+
+                // 2. 核心修正：主動枚舉設備 (iPad 權限喚醒秘訣)
+                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                    await navigator.mediaDevices.enumerateDevices();
+                }
+
+                // 3. 嘗試靜默錄音請求
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop()); // 拿到權限後立刻關閉，避免耗電
+
+                speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE.KEY, AZURE.REGION);
                 document.getElementById('boot-screen').style.display = 'none';
                 renderSidebar();
                 renderGrid('short-a');
             } catch (err) {
-                alert("存取失敗！請確認 Safari 內已將麥克風設為「允許」。");
+                alert("權限診斷：請檢查 iPad「設定」>「Safari」>「麥克風」是否為「允許」。\n錯誤代碼：" + err.name);
             }
         }
 
         function classify() {
             const groups = {};
-            RAW_WORDS.forEach(w => {
-                let type = "short";
-                if (w.endsWith('e') && w.length > 3) type = "long";
-                if (/(ai|ay|ee|ea|oa|ui|ue|igh)/i.test(w)) type = "long";
+            WORDS.forEach(w => {
+                const type = (w.endsWith('e') && w.length > 3) || /(ai|ay|ee|ea|oa|ui|ue)/i.test(w) ? "long" : "short";
                 const vowel = (w.match(/[aeiou]/i) || ['a'])[0].toLowerCase();
                 const key = `${type}-${vowel}`;
                 if (!groups[key]) groups[key] = [];
@@ -113,7 +107,7 @@
             const groups = classify();
             const container = document.getElementById('nav-container');
             container.innerHTML = Object.keys(groups).sort().map(key => `
-                <button onclick="renderGrid('${key}', this)" class="nav-btn w-full p-5 rounded-[25px] text-left font-black text-lg italic hover:bg-white/10 uppercase transition-all">
+                <button onclick="renderGrid('${key}', this)" class="nav-btn w-full p-4 rounded-2xl text-left font-black text-sm uppercase transition-all">
                     ${key.replace('-', ' ')}
                 </button>
             `).join('');
@@ -125,69 +119,58 @@
                 document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-lesson'));
                 btn.classList.add('active-lesson');
             }
-            const groups = classify();
-            const words = groups[key] || [];
             document.getElementById('display-title').innerText = key.replace('-', ' ');
             const container = document.getElementById('grid-container');
-            container.innerHTML = words.map(w => `
+            container.innerHTML = classify()[key].map(w => `
                 <div class="card-pokemon p-12 flex flex-col items-center">
-                    <h4 class="text-8xl font-black text-gray-800 lowercase mb-12">${w}</h4>
-                    <div class="w-full flex gap-5">
-                        <button onclick="startTrainingDirect('${w}')" class="flex-1 bg-red-600 text-white py-7 rounded-[30px] font-black text-3xl active:scale-95 shadow-lg">練習</button>
-                        <button onclick="playSample('${w}')" class="w-24 h-24 bg-gray-100 rounded-[30px] flex items-center justify-center text-5xl active:bg-gray-200">🔊</button>
+                    <h4 class="text-8xl font-black text-gray-800 mb-10 lowercase">${w}</h4>
+                    <div class="w-full flex gap-4">
+                        <button onclick="startTraining('${w}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
+                        <button onclick="playVoice('${w}')" class="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center text-4xl">🔊</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function playSample(text) {
+        function playVoice(text) {
             const voice = document.getElementById('voice-select').value;
-            const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
-            const ratePercent = Math.round((speechRate - 1) * 100);
-            const ssml = `<speak version='1.0' xml:lang='en-US'><voice name='${voice}'><prosody rate='${ratePercent}%'>${text}</prosody></voice></speak>`;
+            const syn = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            const rate = Math.round((speechRate - 1) * 100);
+            const ssml = `<speak version='1.0' xml:lang='en-US'><voice name='${voice}'><prosody rate='${rate}%'>${text}</prosody></voice></speak>`;
             syn.speakSsmlAsync(ssml, () => syn.close());
         }
 
-        // --- 直接啟動錄音 ---
-        function startTrainingDirect(text) {
-            document.getElementById('target-word-display').innerText = `Target: ${text}`;
-            document.getElementById('rec-overlay').classList.remove('hidden');
+        function startTraining(text) {
+            const miniRec = document.getElementById('mini-rec');
+            miniRec.classList.remove('hidden');
 
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
-            const recognizer = new SpeechSDK.SpeechRecognizer(azureConfig, audioConfig);
+            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
             recognizer.recognizeOnceAsync(result => {
+                miniRec.classList.add('hidden');
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                document.getElementById('rec-overlay').classList.add('hidden');
-                showFeedback(res ? res.accuracyScore : 0, !res);
+                showFeedback(res ? res.accuracyScore : 0);
                 recognizer.close();
             }, err => {
-                document.getElementById('rec-overlay').classList.add('hidden');
-                alert("錄音中斷");
+                miniRec.classList.add('hidden');
                 recognizer.close();
             });
         }
 
-        function showFeedback(score, noSound) {
+        function showFeedback(score) {
             const box = document.getElementById('feedback-box');
             const txt = document.getElementById('feedback-text');
-            const val = document.getElementById('score-val');
             box.classList.remove('hidden');
-            val.innerText = noSound ? "0" : Math.round(score);
-
-            let comment = score > 80 ? "Perfect! 🌟" : "Try Again! 💪";
-            let color = score > 80 ? "bg-green-500 text-white" : "bg-red-500 text-white";
-            if(noSound) { comment = "No Sound? 🔊"; color = "bg-gray-600 text-white"; }
-
-            txt.innerText = comment;
-            txt.className = `feedback-pop px-10 py-4 rounded-full font-black text-3xl shadow-xl ${color}`;
+            const isGood = score > 80;
+            txt.innerText = isGood ? "Perfect! 🌟" : "Try Again! 💪";
+            txt.className = `px-8 py-3 rounded-full font-black text-2xl shadow-lg ${isGood ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
             
-            const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
-            syn.speakTextAsync(noSound ? "Try again." : (score > 80 ? "Excellent!" : "Keep going!"), () => syn.close());
-            
-            setTimeout(() => box.classList.add('hidden'), 4000);
+            const syn = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            syn.speakTextAsync(isGood ? "Excellent" : "Say again", () => syn.close());
+            setTimeout(() => box.classList.add('hidden'), 3000);
         }
     </script>
 </body>
