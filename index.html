@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics v6.0.3-Diagnostic</title>
+    <title>Phonics v6.0.4-Final</title>
     <script src="azure.sdk.js"></script>
     <style>
         :root { --blue: #007AFF; --red: #FF3B30; --bg: #F2F2F7; }
@@ -12,22 +12,20 @@
         .version { position: absolute; top: 40px; font-size: 11px; color: #8E8E93; }
         .card { width: 85%; max-width: 400px; background: white; padding: 30px; border-radius: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .word { font-size: 60px; font-weight: 800; margin: 10px 0; }
-        #recordBtn { width: 120px; height: 120px; border-radius: 50%; border: none; background: var(--blue); color: white; font-size: 20px; font-weight: 700; margin-top: 20px; }
-        #recordBtn.listening { background: var(--red); animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        /* 音量診斷條 */
+        #recordBtn { width: 120px; height: 120px; border-radius: 50%; border: none; background: var(--blue); color: white; font-size: 20px; font-weight: 700; margin-top: 20px; touch-action: none; }
+        #recordBtn.listening { background: var(--red); }
         .vol-meter { width: 100%; height: 10px; background: #EEE; border-radius: 5px; margin-top: 20px; overflow: hidden; }
-        #volLevel { width: 0%; height: 100%; background: var(--blue); transition: width 0.1s; }
-        .status { margin-top: 15px; font-size: 14px; color: #666; }
+        #volLevel { width: 0%; height: 100%; background: var(--blue); }
+        .status { margin-top: 15px; font-size: 14px; color: #666; height: 20px; }
     </style>
 </head>
 <body>
-    <div class="version">v6.0.3-Diagnostic-Build</div>
+    <div class="version">v6.0.4-Final-Sync</div>
     <div class="card">
         <div id="wd" class="word">cat</div>
-        <div id="sc" style="font-size: 40px; font-weight: bold;"></div>
+        <div id="sc" style="font-size: 40px; font-weight: bold; color: #34C759;"></div>
         <div class="vol-meter"><div id="volLevel"></div></div>
-        <div id="st" class="status">按住 PUSH 開始說話</div>
+        <div id="st" class="status">準備就緒</div>
     </div>
     <button id="recordBtn">PUSH</button>
 
@@ -37,63 +35,81 @@
         region: "eastasia"
     };
 
-    let audioContext, analyser, dataArray, source, animationId;
+    let audioContext, analyser, animationId, recognizer;
 
-    // 1. 診斷功能：監測音量
-    function startLevelMeter(stream) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        source = audioContext.createMediaStreamSource(stream);
-        source.connect(analyser);
-        analyser.fftSize = 256;
-        dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        function draw() {
-            analyser.getByteFrequencyData(dataArray);
-            let avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
-            document.getElementById('volLevel').style.width = Math.min(avg * 2, 100) + "%";
-            animationId = requestAnimationFrame(draw);
-        }
-        draw();
-    }
-
-    // 2. 核心辨識
-    async function runAssessment() {
+    // 1. 強化版辨識邏輯
+    async function startAssessment() {
         const st = document.getElementById('st');
         const btn = document.getElementById('recordBtn');
+        const word = document.getElementById('wd').innerText;
+        
         btn.classList.add('listening');
-        st.innerText = "偵測聲音中...";
+        st.innerText = "正在傳輸音訊...";
 
         try {
-            // iPad PWA 必須顯式請求特定的採樣率
+            // A. 獲取音訊流 (強制 16kHz 單聲道，Azure 最愛格式)
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { sampleRate: 16000, channelCount: 1 } 
+                audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true } 
             });
-            
-            startLevelMeter(stream); // 啟動音量條
 
+            // B. 啟動音量條診斷
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            analyser = audioContext.createAnalyser();
+            const source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyser);
+            
+            const updateMeter = () => {
+                const data = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(data);
+                const avg = data.reduce((a, b) => a + b) / data.length;
+                document.getElementById('volLevel').style.width = Math.min(avg * 3, 100) + "%";
+                animationId = requestAnimationFrame(updateMeter);
+            };
+            updateMeter();
+
+            // C. 使用 PushAudioInputStream 手動餵入數據 (解決 iPad 靜默問題)
+            const pushStream = SpeechSDK.AudioInputStream.createPushStream();
+            
+            // 關鍵：將 MediaStream 轉接至 PushStream
+            const scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+            source.connect(scriptNode);
+            scriptNode.connect(audioContext.destination);
+            scriptNode.onaudioprocess = (event) => {
+                const inputBuffer = event.inputBuffer.getChannelData(0);
+                // 轉換為 16-bit PCM 格式 (Azure 要求)
+                const pcmData = new Int16Array(inputBuffer.length);
+                for (let i = 0; i < inputBuffer.length; i++) {
+                    pcmData[i] = Math.max(-1, Math.min(1, inputBuffer[i])) * 0x7FFF;
+                }
+                pushStream.write(pcmData.buffer);
+            };
+
+            // D. 配置 SDK
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.key, CONFIG.region);
-            const audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(stream.id);
+            const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(pushStream);
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                document.getElementById('wd').innerText,
+                word,
                 SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
                 SpeechSDK.PronunciationAssessmentGranularity.Phoneme
             );
 
-            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+            recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
             recognizer.recognizeOnceAsync(result => {
+                // 停止資源
                 cancelAnimationFrame(animationId);
+                scriptNode.disconnect();
                 stream.getTracks().forEach(t => t.stop());
+                pushStream.close();
                 btn.classList.remove('listening');
 
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
                     document.getElementById('sc').innerText = Math.round(res.accuracyScore);
-                    st.innerText = "完成！";
+                    st.innerText = "辨識成功";
                 } else {
-                    st.innerText = "未偵測到有效聲音 (Reason: " + result.reason + ")";
+                    st.innerText = "辨識失敗 Reason: " + result.reason;
                 }
                 recognizer.close();
             });
@@ -106,7 +122,7 @@
 
     document.getElementById('recordBtn').onpointerdown = (e) => {
         e.preventDefault();
-        runAssessment();
+        startAssessment();
     };
 </script>
 </body>
