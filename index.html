@@ -4,80 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Master v6.0</title>
+    <title>Phonics v6.0.3-Diagnostic</title>
     <script src="azure.sdk.js"></script>
     <style>
-        :root { --blue: #007AFF; --green: #34C759; --orange: #FF9500; --red: #FF3B30; --bg: #F2F2F7; }
-        body { font-family: -apple-system, system-ui; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; -webkit-user-select: none; }
+        :root { --blue: #007AFF; --red: #FF3B30; --bg: #F2F2F7; }
+        body { font-family: -apple-system; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
         .version { position: absolute; top: 40px; font-size: 11px; color: #8E8E93; }
-        .card { width: 85%; max-width: 400px; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); text-align: center; }
-        .tag { display: inline-block; padding: 4px 12px; background: #E5E5EA; border-radius: 15px; color: var(--blue); font-weight: 600; font-size: 13px; margin-bottom: 10px; }
-        .word { font-size: 60px; font-weight: 800; margin: 5px 0; color: #1C1C1E; }
-        .score { font-size: 48px; font-weight: 700; height: 60px; margin: 10px 0; }
-        .status { font-size: 16px; color: #8E8E93; min-height: 20px; }
-        #recordBtn { width: 130px; height: 130px; border-radius: 50%; border: none; background: var(--blue); color: white; font-size: 20px; font-weight: 700; margin-top: 30px; box-shadow: 0 6px 20px rgba(0,122,255,0.3); transition: 0.1s; }
-        #recordBtn.listening { background: var(--red); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,59,48,0.4); } 70% { box-shadow: 0 0 0 20px rgba(255,59,48,0); } 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0); } }
-        .nav { display: flex; gap: 15px; margin-top: 25px; }
-        .nav button { padding: 10px 25px; border-radius: 12px; border: none; background: white; font-weight: 600; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card { width: 85%; max-width: 400px; background: white; padding: 30px; border-radius: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .word { font-size: 60px; font-weight: 800; margin: 10px 0; }
+        #recordBtn { width: 120px; height: 120px; border-radius: 50%; border: none; background: var(--blue); color: white; font-size: 20px; font-weight: 700; margin-top: 20px; }
+        #recordBtn.listening { background: var(--red); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* 音量診斷條 */
+        .vol-meter { width: 100%; height: 10px; background: #EEE; border-radius: 5px; margin-top: 20px; overflow: hidden; }
+        #volLevel { width: 0%; height: 100%; background: var(--blue); transition: width 0.1s; }
+        .status { margin-top: 15px; font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
-    <div class="version">v6.0.2-Atomic-Fix | East Asia</div>
+    <div class="version">v6.0.3-Diagnostic-Build</div>
     <div class="card">
-        <div id="cat" class="tag">LOADING</div>
-        <div id="wd" class="word">...</div>
-        <div id="sc" class="score"></div>
-        <div id="st" class="status">Tap PUSH to start</div>
+        <div id="wd" class="word">cat</div>
+        <div id="sc" style="font-size: 40px; font-weight: bold;"></div>
+        <div class="vol-meter"><div id="volLevel"></div></div>
+        <div id="st" class="status">按住 PUSH 開始說話</div>
     </div>
     <button id="recordBtn">PUSH</button>
-    <div class="nav">
-        <button onpointerdown="changeWord(-1)">Back</button>
-        <button onpointerdown="changeWord(1)">Next</button>
-    </div>
 
 <script>
     const CONFIG = {
         key: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k",
-        region: "eastasia",
-        words: ["cat", "cake", "sit", "bike", "duck", "boat", "rain", "bee", "hop", "hope"]
+        region: "eastasia"
     };
 
-    let idx = 0;
-    let speechConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.key, CONFIG.region);
-    let micStream = null;
+    let audioContext, analyser, dataArray, source, animationId;
 
-    // 1. 自動分類 (CVC vs MagicE/Teams)
-    function autoClassify(w) {
-        w = w.toLowerCase();
-        const v = ['a','e','i','o','u'].find(x => w.includes(x)) || 'a';
-        const isLong = /[aeiou].[e]$/.test(w) || /ai|ay|ee|ea|ie|oa|oe|ui/.test(w);
-        return `${isLong ? 'Long' : 'Short'} ${v.toUpperCase()}`;
+    // 1. 診斷功能：監測音量
+    function startLevelMeter(stream) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        function draw() {
+            analyser.getByteFrequencyData(dataArray);
+            let avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            document.getElementById('volLevel').style.width = Math.min(avg * 2, 100) + "%";
+            animationId = requestAnimationFrame(draw);
+        }
+        draw();
     }
 
-    // 2. 核心：解決 iPad PWA 收音問題
-    async function startTask() {
-        const btn = document.getElementById('recordBtn');
+    // 2. 核心辨識
+    async function runAssessment() {
         const st = document.getElementById('st');
-        const sc = document.getElementById('sc');
-        
+        const btn = document.getElementById('recordBtn');
         btn.classList.add('listening');
-        btn.innerText = "TALK";
-        st.innerText = "Listening...";
-        sc.innerText = "";
+        st.innerText = "偵測聲音中...";
 
         try {
-            // A. 強制獲取 Stream 並指定配置 (iPad 關鍵)
-            micStream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true } 
+            // iPad PWA 必須顯式請求特定的採樣率
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { sampleRate: 16000, channelCount: 1 } 
             });
-
-            // B. 手動建立 AudioConfig 以確保 SDK 綁定到正確的 Stream
-            const audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(micStream.id);
             
+            startLevelMeter(stream); // 啟動音量條
+
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.key, CONFIG.region);
+            const audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(stream.id);
             const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                CONFIG.words[idx], 
+                document.getElementById('wd').innerText,
                 SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
                 SpeechSDK.PronunciationAssessmentGranularity.Phoneme
             );
@@ -86,81 +84,30 @@
             pronConfig.applyTo(recognizer);
 
             recognizer.recognizeOnceAsync(result => {
-                stopMic();
+                cancelAnimationFrame(animationId);
+                stream.getTracks().forEach(t => t.stop());
                 btn.classList.remove('listening');
-                btn.innerText = "PUSH";
 
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                    handleScore(res.accuracyScore);
+                    document.getElementById('sc').innerText = Math.round(res.accuracyScore);
+                    st.innerText = "完成！";
                 } else {
-                    st.innerText = "No Sound? Speak louder.";
-                    console.log("Recognition Fail Reason:", result.reason);
+                    st.innerText = "未偵測到有效聲音 (Reason: " + result.reason + ")";
                 }
                 recognizer.close();
-            }, err => {
-                stopMic();
-                st.innerText = "Error: " + err;
-                btn.classList.remove('listening');
             });
 
         } catch (err) {
-            st.innerText = "Mic Error: " + err.name;
+            st.innerText = "錯誤: " + err.message;
             btn.classList.remove('listening');
-            btn.innerText = "PUSH";
         }
     }
 
-    function stopMic() {
-        if (micStream) {
-            micStream.getTracks().forEach(track => track.stop());
-            micStream = null;
-        }
-    }
-
-    function handleScore(s) {
-        const sc = document.getElementById('sc');
-        const st = document.getElementById('st');
-        let txt = "", clr = "", voice = "";
-
-        if (s >= 80) { txt = "Perfect! 🌟"; clr = "var(--green)"; voice = "Excellent"; }
-        else if (s >= 50) { txt = "Good! 👍"; clr = "var(--orange)"; voice = "Good job"; }
-        else { txt = "Try Again! 💪"; clr = "var(--red)"; voice = "Keep going"; }
-
-        sc.innerText = Math.round(s);
-        sc.style.color = clr;
-        st.innerText = txt;
-        
-        // TTS 鼓勵 (SSML -20% 語速)
-        const syn = new SpeechSDK.SpeechSynthesizer(speechConfig);
-        const ssml = `<speak version='1.0' xml:lang='en-US'><voice name='en-US-JennyNeural'><prosody rate='-20%'>${voice}</prosody></voice></speak>`;
-        syn.speakSsmlAsync(ssml, r => syn.close(), e => syn.close());
-    }
-
-    // 3. iPad 原子級觸發
     document.getElementById('recordBtn').onpointerdown = (e) => {
         e.preventDefault();
-        // 瞬間解鎖 AudioContext
-        const dummyCtx = new (window.AudioContext || window.webkitAudioContext)();
-        dummyCtx.resume().then(() => {
-            startTask();
-        });
+        runAssessment();
     };
-
-    function update() {
-        const w = CONFIG.words[idx];
-        document.getElementById('wd').innerText = w;
-        document.getElementById('cat').innerText = autoClassify(w);
-        document.getElementById('sc').innerText = "";
-        document.getElementById('st').innerText = "Ready";
-    }
-
-    function changeWord(d) {
-        idx = (idx + d + CONFIG.words.length) % CONFIG.words.length;
-        update();
-    }
-
-    update();
 </script>
 </body>
 </html>
