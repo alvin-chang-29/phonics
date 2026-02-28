@@ -2,98 +2,119 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics Hero v7.5</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Phonics Hero v7.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
+    
+    <script>
+        const SDK_URLS = [
+            "https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js",
+            "https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js",
+            "https://aka.ms/csspeechjs-browser-sdk"
+        ];
+        let retryCount = 0;
+
+        function loadSDK() {
+            const statusText = document.getElementById('status-text');
+            const script = document.createElement('script');
+            script.src = SDK_URLS[retryCount];
+            script.onload = () => {
+                statusText.innerText = "✅ 引擎載入成功！按下方開始。";
+                statusText.className = "text-green-400 font-bold";
+                document.getElementById('start-btn').classList.remove('hidden');
+            };
+            script.onerror = () => {
+                retryCount++;
+                if (retryCount < SDK_URLS.length) {
+                    statusText.innerText = `🔄 載入失敗，嘗試備援管道 ${retryCount}...`;
+                    loadSDK();
+                } else {
+                    statusText.innerText = "❌ 所有管道皆載入失敗！請檢查網路或關閉廣告阻擋器。";
+                    statusText.className = "text-red-500 font-bold";
+                }
+            };
+            document.head.appendChild(script);
+        }
+        window.onload = loadSDK;
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap');
-        body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; }
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
+        body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; margin: 0; overflow: hidden; }
         #boot { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
     </style>
 </head>
-<body class="p-10">
+<body class="h-screen flex items-center justify-center">
 
     <div id="boot">
-        <h1 class="text-4xl font-bold text-yellow-400 mb-8 tracking-tighter text-center">PHONICS HERO v7.5<br><span class="text-sm text-gray-500 font-normal italic uppercase">System Rescue Mode</span></h1>
+        <h1 class="text-5xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
+        <p class="text-gray-500 font-bold mb-10 text-xl tracking-widest">VERSION 7.6 - SDK FIX</p>
         
-        <div id="diag" class="mb-10 text-center px-6 py-4 bg-gray-900 rounded-3xl border border-gray-700 max-w-sm">
-            <p id="msg" class="text-blue-400 font-mono text-xs">Waiting for User Activation...</p>
+        <div class="mb-10 bg-black/50 p-6 rounded-3xl border border-gray-700 text-center w-80">
+            <p id="status-text" class="text-blue-400 font-mono text-sm">正在載入 SpeechSDK...</p>
         </div>
 
-        <button onclick="rescueLaunch()" class="bg-blue-600 text-white px-12 py-6 rounded-full text-2xl font-bold active:scale-95 transition-all">INITIALIZE ENGINE</button>
+        <button id="start-btn" onclick="ipadMasterLaunch()" class="hidden bg-blue-600 text-white px-20 py-8 rounded-full text-3xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
     </div>
 
-    <main id="app" class="hidden">
-        <div class="flex justify-between items-center mb-10">
-            <h2 class="text-3xl font-bold text-gray-800">TRAINING</h2>
-            <div id="score-tag" class="hidden bg-green-500 text-white px-6 py-2 rounded-full font-bold">Score: <span id="val">0</span></div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-8">
-            <div class="bg-white p-10 rounded-[40px] shadow-lg flex flex-col items-center">
-                <span class="text-7xl font-bold text-gray-800 mb-8 italic">cat</span>
-                <button onpointerdown="runQuickRecord('cat', this)" class="w-full bg-red-600 text-white py-6 rounded-3xl font-bold text-xl active:bg-red-800">START RECORD</button>
+    <main id="app" class="hidden text-center p-10">
+        <h2 id="display-title" class="text-5xl font-black text-gray-800 mb-10 italic uppercase tracking-tighter">Ready to Play</h2>
+        <div id="grid" class="grid grid-cols-2 gap-10">
             </div>
-            <div class="bg-white p-10 rounded-[40px] shadow-lg flex flex-col items-center">
-                <span class="text-7xl font-bold text-gray-800 mb-8 italic">bat</span>
-                <button onpointerdown="runQuickRecord('bat', this)" class="w-full bg-red-600 text-white py-6 rounded-3xl font-bold text-xl active:bg-red-800">START RECORD</button>
-            </div>
-        </div>
     </main>
 
     <script>
-        const KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
-        const REGION = "eastasia";
-        let config = null;
+        const CONFIG = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
+        let azureConfig = null;
 
-        async function rescueLaunch() {
-            const msg = document.getElementById('msg');
-            msg.innerText = "Step 1: Requesting Mic...";
-            
+        async function ipadMasterLaunch() {
             try {
-                // 1. 強制喚醒 AudioContext (使用 iPad 偏好的 PointerDown 邏輯)
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                msg.innerText = "✅ Mic Access Granted";
-                msg.className = "text-green-400 font-mono text-xs";
-
-                // 2. 初始化 Azure
-                config = SpeechSDK.SpeechConfig.fromSubscription(KEY, REGION);
+                // 1. 授權麥克風
+                await navigator.mediaDevices.getUserMedia({ audio: true });
                 
-                // 3. 進入 App
+                // 2. 初始化 Azure (此時 SpeechSDK 已確定載入)
+                azureConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.KEY, CONFIG.REGION);
+                
                 document.getElementById('boot').style.display = 'none';
                 document.getElementById('app').classList.remove('hidden');
-
+                renderTestGrid();
             } catch (err) {
-                msg.innerText = "❌ ERROR: " + err.name + "\n" + err.message;
-                msg.className = "text-red-500 font-mono text-xs";
-                console.error(err);
+                alert("權限錯誤：" + err.message);
             }
         }
 
-        function runQuickRecord(text, btn) {
+        function renderTestGrid() {
+            const container = document.getElementById('grid');
+            const words = ['cat', 'bat', 'cake', 'rain'];
+            container.innerHTML = words.map(w => `
+                <div class="bg-white p-12 rounded-[40px] shadow-lg flex flex-col items-center">
+                    <span class="text-8xl font-black text-gray-800 mb-10">${w}</span>
+                    <button onclick="runRec('${w}', this)" class="w-full bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95">練習</button>
+                </div>
+            `).join('');
+        }
+
+        function runRec(target, btn) {
             const original = btn.innerText;
-            btn.innerText = "RECORDING...";
+            btn.innerText = "Listening...";
             btn.disabled = true;
 
             const audio = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pron = new SpeechSDK.PronunciationAssessmentConfig(text, 100, 0);
-            const rec = new SpeechSDK.SpeechRecognizer(config, audio);
+            const pron = new SpeechSDK.PronunciationAssessmentConfig(target, 100, 0);
+            const rec = new SpeechSDK.SpeechRecognizer(azureConfig, audio);
             pron.applyTo(rec);
 
             rec.recognizeOnceAsync(result => {
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                if (res) {
-                    document.getElementById('score-tag').classList.remove('hidden');
-                    document.getElementById('val').innerText = Math.round(res.accuracyScore);
-                }
+                if (res) alert("準確度：" + Math.round(res.accuracyScore));
                 btn.innerText = original;
                 btn.disabled = false;
                 rec.close();
             }, err => {
-                alert("Recording Failed: " + err);
+                alert("錯誤：" + err);
                 btn.innerText = original;
                 btn.disabled = false;
                 rec.close();
