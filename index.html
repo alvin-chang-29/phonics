@@ -6,7 +6,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Hero v6.9</title>
+    <title>Phonics Hero v7.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
     <style>
@@ -22,15 +22,15 @@
 
     <div id="boot-screen">
         <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 6.9 - ATOMIC TRIGGER</p>
+        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 7.0 - STREAM FIX</p>
         <button onclick="ipadMasterLaunch()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
     </div>
 
     <aside class="ipad-sidebar flex flex-col p-6 text-white z-50">
         <h2 class="text-2xl font-black mb-6 italic text-yellow-400 text-center border-b border-gray-700 pb-4">TRAINER</h2>
         <div class="space-y-6 mb-8">
-            <div class="bg-black/40 p-4 rounded-3xl border border-gray-600 text-xs">
-                <label class="text-gray-400 font-bold block mb-2 px-1">Speed: <span id="rate-display">1.0</span>x</label>
+            <div class="bg-black/40 p-4 rounded-3xl border border-gray-600">
+                <label class="text-gray-400 text-[10px] font-bold block mb-2 px-1 uppercase">Speed: <span id="rate-display">1.0</span>x</label>
                 <input type="range" id="rate-slider" min="0.8" max="1.1" step="0.05" value="1.0" oninput="updateSpeed(this.value)" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500">
             </div>
             <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl outline-none font-bold text-sm">
@@ -58,25 +58,30 @@
         
         let speechConfig = null;
         let speechRate = 1.0;
-        let persistentStream = null; // 持久化流避免重複授權
+        let micStream = null;
 
         function updateSpeed(v) { speechRate = v; document.getElementById('rate-display').innerText = v; }
 
         async function ipadMasterLaunch() {
             try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                const ctx = new AudioCtx();
-                if (ctx.state === 'suspended') await ctx.resume();
-
-                // 原子級請求：不等待直接拿麥克風並保留它
-                persistentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // 1. 取得音訊串流並保持活動
+                micStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    } 
+                });
                 
                 speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE.KEY, AZURE.REGION);
+                // 強制設定識別語言，減少判斷延遲
+                speechConfig.speechRecognitionLanguage = "en-US";
+                
                 document.getElementById('boot-screen').style.display = 'none';
                 renderSidebar();
                 renderGrid('short-a');
             } catch (err) {
-                alert("存取失敗！請點擊『AA』確認麥克風權限已改為『允許』。");
+                alert("啟動錯誤: " + err.message);
             }
         }
 
@@ -112,7 +117,7 @@
             const container = document.getElementById('grid-container');
             container.innerHTML = classify()[key].map(w => `
                 <div class="card-pokemon p-12 flex flex-col items-center">
-                    <h4 class="text-8xl font-black text-gray-800 mb-10 lowercase">${w}</h4>
+                    <h4 class="text-8xl font-black text-gray-800 lowercase mb-10">${w}</h4>
                     <div class="w-full flex gap-4">
                         <button onclick="startTraining('${w}', this)" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
                         <button onclick="playVoice('${w}')" class="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center text-4xl">🔊</button>
@@ -126,19 +131,24 @@
             const syn = new SpeechSDK.SpeechSynthesizer(speechConfig);
             const rate = Math.round((speechRate - 1) * 100);
             const ssml = `<speak version='1.0' xml:lang='en-US'><voice name='${voice}'><prosody rate='${rate}%'>${text}</prosody></voice></speak>`;
-            syn.speakSsmlAsync(ssml, () => syn.close());
+            syn.speakSsmlAsync(ssml, () => syn.close(), () => syn.close());
         }
 
-        // --- v6.9 原子級觸發：按下後「立刻」執行，不給 iOS 任何懷疑的空間 ---
+        // --- v7.0 核心修正：手動指定音訊配置 ---
         function startTraining(text, btn) {
             const originalText = btn.innerText;
             btn.innerText = "Listening...";
             btn.disabled = true;
             btn.classList.replace('bg-red-600', 'bg-orange-500');
 
-            // 直接使用現有流或建立新配置，不使用任何 setTimeout
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(text, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
+            // 使用現有的串流建立音訊配置，這可以繞過 iOS 的重新授權檢查
+            const audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(micStream.id);
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                text, 
+                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
+                SpeechSDK.PronunciationAssessmentGranularity.Phoneme
+            );
+            
             const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
@@ -146,13 +156,11 @@
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
                 showFeedback(res ? res.accuracyScore : 0);
                 
-                // 恢復按鈕
                 btn.innerText = originalText;
                 btn.disabled = false;
                 btn.classList.replace('bg-orange-500', 'bg-red-600');
                 recognizer.close();
             }, err => {
-                alert("錯誤：" + err);
                 btn.innerText = originalText;
                 btn.disabled = false;
                 btn.classList.replace('bg-orange-500', 'bg-red-600');
@@ -166,12 +174,12 @@
             const val = document.getElementById('score-val');
             box.classList.remove('hidden');
             val.innerText = Math.round(score);
-            const isGood = score > 80;
+            const isGood = score > 70; // 稍微放寬標準
             txt.innerText = isGood ? "Perfect! 🌟" : "Try Again! 💪";
             txt.className = `px-8 py-3 rounded-full font-black text-2xl shadow-lg ${isGood ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
             
             const syn = new SpeechSDK.SpeechSynthesizer(speechConfig);
-            syn.speakTextAsync(isGood ? "Excellent" : "Say again", () => syn.close());
+            syn.speakTextAsync(isGood ? "Good job!" : "Try again", () => syn.close());
             setTimeout(() => box.classList.add('hidden'), 3000);
         }
     </script>
