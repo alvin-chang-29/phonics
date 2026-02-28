@@ -3,123 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Phonics Hero v7.6</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Phonics PWA v6.0</title>
     
-    <script>
-        const SDK_URLS = [
-            "https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js",
-            "https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js",
-            "https://aka.ms/csspeechjs-browser-sdk"
-        ];
-        let retryCount = 0;
-
-        function loadSDK() {
-            const statusText = document.getElementById('status-text');
-            const script = document.createElement('script');
-            script.src = SDK_URLS[retryCount];
-            script.onload = () => {
-                statusText.innerText = "✅ 引擎載入成功！按下方開始。";
-                statusText.className = "text-green-400 font-bold";
-                document.getElementById('start-btn').classList.remove('hidden');
-            };
-            script.onerror = () => {
-                retryCount++;
-                if (retryCount < SDK_URLS.length) {
-                    statusText.innerText = `🔄 載入失敗，嘗試備援管道 ${retryCount}...`;
-                    loadSDK();
-                } else {
-                    statusText.innerText = "❌ 所有管道皆載入失敗！請檢查網路或關閉廣告阻擋器。";
-                    statusText.className = "text-red-500 font-bold";
-                }
-            };
-            document.head.appendChild(script);
-        }
-        window.onload = loadSDK;
-    </script>
+    <script src="azure.sdk.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
-        body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; margin: 0; overflow: hidden; }
-        #boot { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        :root {
+            --ios-blue: #007AFF; --ios-green: #34C759; --ios-orange: #FF9500; --ios-red: #FF3B30; --bg: #F2F2F7;
+        }
+        body {
+            font-family: -apple-system, system-ui; background-color: var(--bg); margin: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden; -webkit-user-select: none;
+        }
+        .version { position: absolute; top: 50px; font-size: 12px; color: #8E8E93; }
+        .card {
+            width: 85%; max-width: 450px; background: white; padding: 40px;
+            border-radius: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); text-align: center;
+        }
+        .tag { display: inline-block; padding: 6px 16px; background: #E5E5EA; border-radius: 20px; color: var(--ios-blue); font-weight: 600; font-size: 14px; margin-bottom: 15px; }
+        .word { font-size: 64px; font-weight: 800; margin: 10px 0; color: #1C1C1E; }
+        .score { font-size: 40px; font-weight: 700; margin-top: 10px; height: 50px; }
+        .status { margin-top: 10px; font-size: 18px; color: #8E8E93; min-height: 24px; }
+        .btn-main {
+            width: 120px; height: 120px; border-radius: 50%; border: none; background: var(--ios-blue);
+            color: white; font-size: 18px; font-weight: 600; box-shadow: 0 8px 20px rgba(0,122,255,0.3);
+            margin-top: 40px; transition: transform 0.1s; -webkit-tap-highlight-color: transparent;
+        }
+        .btn-main:active { transform: scale(0.9); background: #0051A8; }
+        .btn-main.listening { background: var(--ios-red); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,59,48,0.4); } 70% { box-shadow: 0 0 0 20px rgba(255,59,48,0); } 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0); } }
+        .nav { display: flex; gap: 20px; margin-top: 30px; }
+        .nav button { padding: 12px 24px; border-radius: 15px; border: none; background: #E5E5EA; font-weight: 600; font-size: 16px; }
     </style>
 </head>
-<body class="h-screen flex items-center justify-center">
+<body>
 
-    <div id="boot">
-        <h1 class="text-5xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-widest">VERSION 7.6 - SDK FIX</p>
-        
-        <div class="mb-10 bg-black/50 p-6 rounded-3xl border border-gray-700 text-center w-80">
-            <p id="status-text" class="text-blue-400 font-mono text-sm">正在載入 SpeechSDK...</p>
-        </div>
+    <div class="version">Phonics PWA v6.0.1 (Speech SDK 1.37.0)</div>
 
-        <button id="start-btn" onclick="ipadMasterLaunch()" class="hidden bg-blue-600 text-white px-20 py-8 rounded-full text-3xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
+    <div class="card">
+        <div id="cat" class="tag">LOADING...</div>
+        <div id="wd" class="word">...</div>
+        <div id="sc" class="score"></div>
+        <div id="st" class="status">Tap the button to start</div>
     </div>
 
-    <main id="app" class="hidden text-center p-10">
-        <h2 id="display-title" class="text-5xl font-black text-gray-800 mb-10 italic uppercase tracking-tighter">Ready to Play</h2>
-        <div id="grid" class="grid grid-cols-2 gap-10">
-            </div>
-    </main>
+    <button id="recordBtn" class="btn-main">PUSH</button>
+    
+    <div class="nav">
+        <button onpointerdown="changeWord(-1)">Back</button>
+        <button onpointerdown="changeWord(1)">Next</button>
+    </div>
 
-    <script>
-        const CONFIG = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
-        let azureConfig = null;
+<script>
+    // 雲端配置
+    const CFG = {
+        k: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k",
+        r: "eastasia"
+    };
 
-        async function ipadMasterLaunch() {
-            try {
-                // 1. 授權麥克風
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                // 2. 初始化 Azure (此時 SpeechSDK 已確定載入)
-                azureConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.KEY, CONFIG.REGION);
-                
-                document.getElementById('boot').style.display = 'none';
-                document.getElementById('app').classList.remove('hidden');
-                renderTestGrid();
-            } catch (err) {
-                alert("權限錯誤：" + err.message);
+    const RAW_WORDS = ["cat", "cake", "sit", "bike", "duck", "boat", "rain", "bee", "hop", "hope"];
+    let idx = 0;
+    let sCfg = SpeechSDK.SpeechConfig.fromSubscription(CFG.k, CFG.r);
+    let aCtx;
+
+    // 1. 智慧歸類引擎
+    function getCat(w) {
+        w = w.toLowerCase();
+        const v = ['a','e','i','o','u'].find(x => w.includes(x)) || 'a';
+        const isLong = /[aeiou].[e]$/.test(w) || /ai|ay|ee|ea|ie|oa|oe|ui/.test(w);
+        return `${isLong ? 'Long' : 'Short'} ${v.toUpperCase()}`;
+    }
+
+    // 2. 核心評估邏輯
+    function runTask(target) {
+        const btn = document.getElementById('recordBtn');
+        const st = document.getElementById('st');
+        const sc = document.getElementById('sc');
+
+        btn.classList.add('listening');
+        btn.innerText = "LISTENING";
+        st.innerText = "Listening...";
+        sc.innerText = "";
+
+        const aCfg = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        const pCfg = new SpeechSDK.PronunciationAssessmentConfig(
+            target, 
+            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+            SpeechSDK.PronunciationAssessmentGranularity.Phoneme
+        );
+
+        const rec = new SpeechSDK.SpeechRecognizer(sCfg, aCfg);
+        pCfg.applyTo(rec);
+
+        rec.recognizeOnceAsync(res => {
+            btn.classList.remove('listening');
+            btn.innerText = "PUSH";
+            
+            if (res.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                const result = SpeechSDK.PronunciationAssessmentResult.fromResult(res);
+                handleScore(result.accuracyScore);
+            } else {
+                st.innerText = "No Sound? Try Again";
+                speakFeedback("Try again");
             }
-        }
+            rec.close();
+        }, err => {
+            btn.classList.remove('listening');
+            rec.close();
+        });
+    }
 
-        function renderTestGrid() {
-            const container = document.getElementById('grid');
-            const words = ['cat', 'bat', 'cake', 'rain'];
-            container.innerHTML = words.map(w => `
-                <div class="bg-white p-12 rounded-[40px] shadow-lg flex flex-col items-center">
-                    <span class="text-8xl font-black text-gray-800 mb-10">${w}</span>
-                    <button onclick="runRec('${w}', this)" class="w-full bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95">練習</button>
-                </div>
-            `).join('');
-        }
+    // 3. 分數判定與音效
+    function handleScore(s) {
+        const sc = document.getElementById('sc');
+        const st = document.getElementById('st');
+        let m = "", c = "", t = "";
 
-        function runRec(target, btn) {
-            const original = btn.innerText;
-            btn.innerText = "Listening...";
-            btn.disabled = true;
+        if (s >= 80) { m = "Perfect! 🌟"; c = "var(--ios-green)"; t = "Excellent"; }
+        else if (s >= 50) { m = "Good! 👍"; c = "var(--ios-orange)"; t = "Good job"; }
+        else { m = "Try Again! 💪"; c = "var(--ios-red)"; t = "Keep going"; }
 
-            const audio = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pron = new SpeechSDK.PronunciationAssessmentConfig(target, 100, 0);
-            const rec = new SpeechSDK.SpeechRecognizer(azureConfig, audio);
-            pron.applyTo(rec);
+        sc.innerText = Math.round(s);
+        sc.style.color = c;
+        st.innerText = m;
+        speakFeedback(t);
+    }
 
-            rec.recognizeOnceAsync(result => {
-                const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                if (res) alert("準確度：" + Math.round(res.accuracyScore));
-                btn.innerText = original;
-                btn.disabled = false;
-                rec.close();
-            }, err => {
-                alert("錯誤：" + err);
-                btn.innerText = original;
-                btn.disabled = false;
-                rec.close();
-            });
-        }
-    </script>
+    // 4. TTS 語速控制 (SSML -20%)
+    function speakFeedback(text) {
+        const syn = new SpeechSDK.SpeechSynthesizer(sCfg);
+        const ssml = `<speak version='1.0' xml:lang='en-US'><voice name='en-US-JennyNeural'><prosody rate='-20%'>${text}</prosody></voice></speak>`;
+        syn.speakSsmlAsync(ssml, r => syn.close(), e => syn.close());
+    }
+
+    // 5. iPad 原子級啟動器
+    document.getElementById('recordBtn').onpointerdown = function() {
+        if (!aCtx) aCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (aCtx.state === 'suspended') aCtx.resume();
+        
+        // 緩衝 800ms 確保 iPad 硬體準備就緒
+        setTimeout(() => runTask(RAW_WORDS[idx]), 800);
+    };
+
+    function update() {
+        const w = RAW_WORDS[idx];
+        document.getElementById('wd').innerText = w;
+        document.getElementById('cat').innerText = getCat(w);
+        document.getElementById('sc').innerText = "";
+        document.getElementById('st').innerText = "Ready";
+    }
+
+    function changeWord(d) {
+        idx = (idx + d + RAW_WORDS.length) % RAW_WORDS.length;
+        update();
+    }
+
+    update();
+</script>
 </body>
 </html>
