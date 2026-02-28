@@ -2,184 +2,102 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PhonicsHero">
-    
-    <title>Phonics Hero v5.4 Ultra</title>
+    <title>Phonics Hero v7.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.37.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
-        body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-        .ipad-sidebar { background-color: #2D2D2D; width: 280px; flex-shrink: 0; }
-        .active-lesson { background-color: #CC0000 !important; color: white !important; }
-        .card-pokemon { background: white; border-radius: 40px; box-shadow: 0 10px 0 #E5E5E5; border: 2px solid #F3F4F6; }
-        #boot-screen { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap');
+        body { font-family: 'Fredoka', sans-serif; background-color: #FDF4D0; }
+        #boot { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
     </style>
 </head>
-<body class="h-screen flex">
+<body class="p-10">
 
-    <div id="boot-screen">
-        <h1 class="text-6xl font-black text-yellow-400 italic mb-4">PHONICS HERO</h1>
-        <p class="text-gray-500 font-bold mb-10 text-xl tracking-[0.3em]">VERSION 5.4 - ULTRA FIX</p>
-        <button id="start-btn" onclick="ipadMasterLaunch()" class="bg-blue-600 text-white px-20 py-10 rounded-full text-4xl font-black shadow-2xl active:scale-95 transition-all">START TRAINING</button>
-    </div>
-
-    <aside class="ipad-sidebar flex flex-col p-6 text-white z-50 overflow-y-auto">
-        <h2 class="text-2xl font-black mb-6 italic text-yellow-400 text-center border-b border-gray-700 pb-4 uppercase">Trainer</h2>
+    <div id="boot">
+        <h1 class="text-4xl font-bold text-yellow-400 mb-8 tracking-tighter text-center">PHONICS HERO v7.5<br><span class="text-sm text-gray-500 font-normal italic uppercase">System Rescue Mode</span></h1>
         
-        <div class="space-y-4 mb-8">
-            <div class="bg-black/40 p-4 rounded-3xl border border-gray-600 text-center">
-                <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Speech Speed</p>
-                <div class="flex gap-2">
-                    <button onclick="setRate(1.0, this)" class="rate-btn bg-red-600 flex-1 py-2 rounded-xl text-xs font-bold">1.0x</button>
-                    <button onclick="setRate(0.85, this)" class="rate-btn bg-gray-700 flex-1 py-2 rounded-xl text-xs font-bold">0.8x</button>
-                </div>
-            </div>
-            
-            <select id="voice-select" class="w-full bg-gray-800 text-white p-3 rounded-2xl font-bold text-sm">
-                <option value="en-US-AvaNeural">Ava</option>
-                <option value="en-US-AndrewNeural">Andrew</option>
-            </select>
+        <div id="diag" class="mb-10 text-center px-6 py-4 bg-gray-900 rounded-3xl border border-gray-700 max-w-sm">
+            <p id="msg" class="text-blue-400 font-mono text-xs">Waiting for User Activation...</p>
         </div>
 
-        <nav class="space-y-3">
-            <button onclick="changeCategory('short-a', this)" class="nav-btn active-lesson w-full p-4 rounded-2xl text-left font-black text-sm uppercase italic">🍎 Short A</button>
-            <button onclick="changeCategory('short-e', this)" class="nav-btn w-full p-4 rounded-2xl text-left font-black text-sm uppercase italic">🍳 Short E</button>
-            <button onclick="changeCategory('short-i', this)" class="nav-btn w-full p-4 rounded-2xl text-left font-black text-sm uppercase italic">🧊 Short I</button>
-            <button onclick="changeCategory('short-o', this)" class="nav-btn w-full p-4 rounded-2xl text-left font-black text-sm uppercase italic">🐙 Short O</button>
-            <button onclick="changeCategory('short-u', this)" class="nav-btn w-full p-4 rounded-2xl text-left font-black text-sm uppercase italic">☔ Short U</button>
-            <div class="border-t border-gray-700 my-2"></div>
-            <button onclick="changeCategory('long-a', this)" class="nav-btn w-full p-4 rounded-2xl text-left font-black text-sm uppercase italic">🎂 Long A</button>
-        </nav>
-    </aside>
-
-    <main class="flex-1 p-12 overflow-y-auto bg-[#FDF4D0]">
-        <header class="h-24 flex justify-between items-center mb-10">
-            <h3 id="display-title" class="text-5xl font-black text-gray-800 italic uppercase">Short A</h3>
-            <div id="feedback-box" class="hidden flex items-center gap-4">
-                <div id="feedback-text" class="px-8 py-3 rounded-full font-black text-2xl shadow-lg"></div>
-            </div>
-        </header>
-        <div id="grid-container" class="grid grid-cols-2 xl:grid-cols-3 gap-10"></div>
-    </main>
-
-    <div id="rec-overlay" class="hidden fixed inset-0 z-[1000] bg-white/95 flex flex-col items-center justify-center">
-        <div id="rec-timer" class="text-[20rem] font-black text-red-600 italic leading-none">1</div>
-        <p class="text-4xl font-black text-gray-400 uppercase tracking-widest">Wait...</p>
+        <button onclick="rescueLaunch()" class="bg-blue-600 text-white px-12 py-6 rounded-full text-2xl font-bold active:scale-95 transition-all">INITIALIZE ENGINE</button>
     </div>
 
+    <main id="app" class="hidden">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-3xl font-bold text-gray-800">TRAINING</h2>
+            <div id="score-tag" class="hidden bg-green-500 text-white px-6 py-2 rounded-full font-bold">Score: <span id="val">0</span></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-8">
+            <div class="bg-white p-10 rounded-[40px] shadow-lg flex flex-col items-center">
+                <span class="text-7xl font-bold text-gray-800 mb-8 italic">cat</span>
+                <button onpointerdown="runQuickRecord('cat', this)" class="w-full bg-red-600 text-white py-6 rounded-3xl font-bold text-xl active:bg-red-800">START RECORD</button>
+            </div>
+            <div class="bg-white p-10 rounded-[40px] shadow-lg flex flex-col items-center">
+                <span class="text-7xl font-bold text-gray-800 mb-8 italic">bat</span>
+                <button onpointerdown="runQuickRecord('bat', this)" class="w-full bg-red-600 text-white py-6 rounded-3xl font-bold text-xl active:bg-red-800">START RECORD</button>
+            </div>
+        </div>
+    </main>
+
     <script>
-        const CONFIG = { KEY: "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k", REGION: "eastasia" };
-        const DB = {
-            'short-a': ['cat', 'bat', 'hat', 'mat', 'fan', 'can', 'pan', 'van', 'map', 'cap', 'tap', 'nap', 'bag', 'tag', 'rag', 'wag', 'ham', 'jam', 'yam', 'dam', 'dad', 'sad', 'mad', 'bad'],
-            'short-e': ['hen', 'pen', 'ten', 'men', 'red', 'bed', 'jet', 'net', 'wet', 'pet'],
-            'short-i': ['pig', 'wig', 'dig', 'bin', 'fin', 'pin', 'win', 'sit', 'hit', 'six', 'sick'],
-            'short-o': ['hot', 'pot', 'cot', 'dot', 'hop', 'mop', 'top', 'cop', 'dog', 'log', 'ox', 'box'],
-            'short-u': ['duck', 'bus', 'nut', 'bug', 'sun', 'run', 'gun', 'tub', 'cup', 'jug', 'rug'],
-            'long-a': ['cake', 'lake', 'bake', 'rake', 'fake', 'make', 'take', 'mail', 'tail', 'rain', 'day', 'say']
-        };
+        const KEY = "76hZ0aIRPIj1XkOMXHRL8TAvTvurzg3JybPyFMJXvNKFaBI4h0i7JQQJ99CBAC3pKaRXJ3w3AAAYACOGP64k";
+        const REGION = "eastasia";
+        let config = null;
 
-        let azureConfig = null;
-        let speechRate = 1.0;
-
-        function setRate(r, btn) {
-            speechRate = r;
-            document.querySelectorAll('.rate-btn').forEach(b => b.classList.replace('bg-red-600', 'bg-gray-700'));
-            btn.classList.replace('bg-gray-700', 'bg-red-600');
-        }
-
-        async function ipadMasterLaunch() {
+        async function rescueLaunch() {
+            const msg = document.getElementById('msg');
+            msg.innerText = "Step 1: Requesting Mic...";
+            
             try {
-                // 第一優先：請求麥克風 (完全同步觸發)
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                // 第二：解鎖音訊
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                const ctx = new AudioCtx();
-                if (ctx.state === 'suspended') await ctx.resume();
+                // 1. 強制喚醒 AudioContext (使用 iPad 偏好的 PointerDown 邏輯)
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                msg.innerText = "✅ Mic Access Granted";
+                msg.className = "text-green-400 font-mono text-xs";
 
-                // 第三：初始化 SDK
-                azureConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.KEY, CONFIG.REGION);
+                // 2. 初始化 Azure
+                config = SpeechSDK.SpeechConfig.fromSubscription(KEY, REGION);
                 
-                document.getElementById('boot-screen').style.display = 'none';
-                changeCategory('short-a', document.querySelector('.nav-btn'));
+                // 3. 進入 App
+                document.getElementById('boot').style.display = 'none';
+                document.getElementById('app').classList.remove('hidden');
+
             } catch (err) {
-                alert("授權失敗：請點擊『AA』確認麥克風已改為『允許』。");
+                msg.innerText = "❌ ERROR: " + err.name + "\n" + err.message;
+                msg.className = "text-red-500 font-mono text-xs";
+                console.error(err);
             }
         }
 
-        function changeCategory(cat, btn) {
-            if(btn) {
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-lesson'));
-                btn.classList.add('active-lesson');
-            }
-            document.getElementById('display-title').innerText = cat.replace('-', ' ');
-            const container = document.getElementById('grid-container');
-            container.innerHTML = DB[cat].map(w => `
-                <div class="card-pokemon p-12 flex flex-col items-center">
-                    <h4 class="text-8xl font-black text-gray-800 lowercase mb-10">${w}</h4>
-                    <div class="w-full flex gap-4">
-                        <button onclick="startTraining('${w}')" class="flex-1 bg-red-600 text-white py-6 rounded-3xl font-black text-2xl active:scale-95 shadow-lg">練習</button>
-                        <button onclick="playSample('${w}')" class="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center text-4xl">🔊</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        function runQuickRecord(text, btn) {
+            const original = btn.innerText;
+            btn.innerText = "RECORDING...";
+            btn.disabled = true;
 
-        function playSample(text) {
-            const voice = document.getElementById('voice-select').value;
-            const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
-            const rate = Math.round((speechRate - 1) * 100);
-            const ssml = `<speak version='1.0' xml:lang='en-US'><voice name='${voice}'><prosody rate='${rate}%'>${text}</prosody></voice></speak>`;
-            syn.speakSsmlAsync(ssml, () => syn.close());
-        }
+            const audio = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            const pron = new SpeechSDK.PronunciationAssessmentConfig(text, 100, 0);
+            const rec = new SpeechSDK.SpeechRecognizer(config, audio);
+            pron.applyTo(rec);
 
-        function startTraining(text) {
-            const overlay = document.getElementById('rec-overlay');
-            overlay.classList.remove('hidden');
-            let c = 1;
-            document.getElementById('rec-timer').innerText = c;
-            
-            const itv = setInterval(() => {
-                c--;
-                if(c === 0) {
-                    clearInterval(itv);
-                    overlay.classList.add('hidden');
-                    runAssessment(text);
-                }
-            }, 1000);
-        }
-
-        function runAssessment(targetText) {
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(targetText, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Phoneme);
-            const recognizer = new SpeechSDK.SpeechRecognizer(azureConfig, audioConfig);
-            pronConfig.applyTo(recognizer);
-
-            recognizer.recognizeOnceAsync(result => {
+            rec.recognizeOnceAsync(result => {
                 const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                showFeedback(res ? res.accuracyScore : 0);
-                recognizer.close();
+                if (res) {
+                    document.getElementById('score-tag').classList.remove('hidden');
+                    document.getElementById('val').innerText = Math.round(res.accuracyScore);
+                }
+                btn.innerText = original;
+                btn.disabled = false;
+                rec.close();
+            }, err => {
+                alert("Recording Failed: " + err);
+                btn.innerText = original;
+                btn.disabled = false;
+                rec.close();
             });
-        }
-
-        function showFeedback(score) {
-            const box = document.getElementById('feedback-box');
-            const txt = document.getElementById('feedback-text');
-            box.classList.remove('hidden');
-            const isGood = score > 75;
-            txt.innerText = isGood ? "Perfect! 🌟" : "Try Again! 💪";
-            txt.className = `px-8 py-3 rounded-full font-black text-2xl shadow-lg ${isGood ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-            
-            const syn = new SpeechSDK.SpeechSynthesizer(azureConfig);
-            syn.speakTextAsync(isGood ? "Good job" : "Try again", () => syn.close());
-            setTimeout(() => box.classList.add('hidden'), 3000);
         }
     </script>
 </body>
