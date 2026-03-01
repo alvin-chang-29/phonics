@@ -4,27 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Phonics v6.0.6-Final</title>
+    <title>Phonics v6.0.8-Reset-Pro</title>
     <script src="azure.sdk.js"></script>
     <style>
-        :root { --blue: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-top: 50px; margin: 0; }
-        .version { font-size: 11px; color: #8E8E93; margin-bottom: 5px; }
+        :root { --blue: #007AFF; --red: #FF3B30; --bg: #F2F2F7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-top: 50px; margin: 0; overflow: hidden; }
+        .version { font-size: 11px; color: #8E8E93; margin-bottom: 5px; font-weight: bold; }
         .card { width: 85%; max-width: 400px; background: white; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .word { font-size: 56px; font-weight: 800; margin: 10px 0; }
-        .vol-meter { width: 100%; height: 8px; background: #EEE; border-radius: 4px; overflow: hidden; }
-        #volLevel { width: 0%; height: 100%; background: var(--blue); transition: width 0.05s; }
-        #recordBtn { width: 110px; height: 110px; border-radius: 50%; border: none; background: var(--blue); color: white; font-size: 18px; font-weight: 700; margin: 25px 0; }
-        #debug { width: 85%; max-width: 400px; height: 100px; background: #1C1C1E; color: #32D74B; font-family: monospace; font-size: 10px; padding: 10px; margin-top: 15px; border-radius: 10px; overflow-y: auto; text-align: left; }
+        .vol-meter { width: 100%; height: 10px; background: #EEE; border-radius: 5px; margin: 15px 0; overflow: hidden; position: relative; }
+        #volLevel { width: 0%; height: 100%; background: var(--blue); transition: width 0.05s linear; }
+        #recordBtn { width: 120px; height: 120px; border-radius: 50%; border: none; background: var(--blue); color: white; font-size: 20px; font-weight: 700; box-shadow: 0 8px 25px rgba(0,122,255,0.3); touch-action: none; -webkit-tap-highlight-color: transparent; }
+        #recordBtn.active { background: var(--red); transform: scale(0.95); }
+        #debug { width: 85%; max-width: 400px; height: 110px; background: #1C1C1E; color: #32D74B; font-family: monospace; font-size: 10px; padding: 10px; margin-top: 20px; border-radius: 10px; overflow-y: auto; text-align: left; }
     </style>
 </head>
 <body>
-    <div class="version">v6.0.6-Gain-Calibration</div>
+    <div class="version">v6.0.8-Buffer-Reset-Build</div>
     <div class="card">
         <div id="wd" class="word">cat</div>
         <div id="sc" style="font-size: 36px; font-weight: bold; color: var(--blue);"></div>
         <div class="vol-meter"><div id="volLevel"></div></div>
-        <div id="st" style="margin-top:10px; font-size:14px; color:#666;">Ready</div>
+        <div id="st" style="font-size: 14px; color: #666;">Ready</div>
     </div>
     <button id="recordBtn">PUSH</button>
     <div id="debug">--- Debug Log ---<br></div>
@@ -37,85 +38,96 @@
 
     function log(m) { const d = document.getElementById('debug'); d.innerHTML += `> ${m}<br>`; d.scrollTop = d.scrollHeight; }
 
-    let audioContext, scriptNode;
+    // 全域變數，確保可以被徹底清理
+    let audioContext, scriptNode, micStream, recognizer;
 
-    async function start() {
+    async function cleanup() {
+        if (recognizer) { try { recognizer.close(); } catch(e){} }
+        if (scriptNode) { scriptNode.disconnect(); scriptNode.onaudioprocess = null; }
+        if (micStream) { micStream.getTracks().forEach(t => t.stop()); }
+        if (audioContext && audioContext.state !== 'closed') { await audioContext.close(); }
+        audioContext = null;
+        document.getElementById('volLevel').style.width = "0%";
+    }
+
+    async function startAssessment() {
+        await cleanup(); // 每次開始前先徹底重置所有音訊資源
+
         const btn = document.getElementById('recordBtn');
         const st = document.getElementById('st');
-        btn.disabled = true;
-        btn.style.opacity = 0.5;
+        const word = document.getElementById('wd').innerText;
+        
+        btn.classList.add('active');
+        st.innerText = "Listening...";
+        log("New Session Starting...");
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { sampleRate: 16000, channelCount: 1, autoGainControl: true } 
+            micStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { sampleRate: 16000, channelCount: 1, autoGainControl: false } 
             });
 
             audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-            const source = audioContext.createMediaStreamSource(stream);
+            const source = audioContext.createMediaStreamSource(micStream);
             const pushStream = SpeechSDK.AudioInputStream.createPushStream();
 
-            // 修正：調低增益 (0.8) 並加強裁切防護
-            scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+            scriptNode = audioContext.createScriptProcessor(2048, 1, 1);
             source.connect(scriptNode);
             scriptNode.connect(audioContext.destination);
 
-            let maxVal = 0;
+            let peak = 0;
             scriptNode.onaudioprocess = (e) => {
                 const input = e.inputBuffer.getChannelData(0);
                 const pcm = new Int16Array(input.length);
+                let currentMax = 0;
+                
                 for (let i = 0; i < input.length; i++) {
-                    // 關鍵修正：縮小增益防止溢出
-                    const s = Math.max(-1, Math.min(1, input[i] * 0.9)); 
+                    const s = Math.max(-1, Math.min(1, input[i] * 0.4)); // 進一步降低增益至 0.4
                     pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                    if (Math.abs(pcm[i]) > maxVal) maxVal = Math.abs(pcm[i]);
+                    const abs = Math.abs(pcm[i]);
+                    if (abs > currentMax) currentMax = abs;
                 }
+                
                 pushStream.write(pcm.buffer);
-                document.getElementById('volLevel').style.width = Math.min((maxVal/327.68), 100) + "%";
+                peak = currentMax;
+                // 即時更新音量條，讓它會「歸零」
+                document.getElementById('volLevel').style.width = (currentMax / 131) + "%";
             };
 
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.key, CONFIG.region);
             const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(pushStream);
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                document.getElementById('wd').innerText,
-                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-                SpeechSDK.PronunciationAssessmentGranularity.Phoneme
-            );
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(word, 1, 1);
 
-            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+            recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
             pronConfig.applyTo(recognizer);
 
-            log("Starting Azure Sync...");
-            recognizer.recognizeOnceAsync(result => {
-                log(`Reason: ${result.reason} | Max Amp: ${maxVal}`);
-                
-                // 停止所有流
-                stream.getTracks().forEach(t => t.stop());
-                pushStream.close();
-                scriptNode.disconnect();
-                btn.disabled = false;
-                btn.style.opacity = 1;
+            recognizer.recognizeOnceAsync(async (result) => {
+                log(`End: ${result.reason} | Peak: ${peak}`);
+                btn.classList.remove('active');
 
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     const res = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
                     document.getElementById('sc').innerText = Math.round(res.accuracyScore);
                     st.innerText = "Success!";
                 } else {
-                    st.innerText = "Fail: " + result.reason;
-                    if (maxVal > 32000) log("!! 警告：聲音過載爆表");
+                    st.innerText = "Fail. Reason: " + result.reason;
                 }
-                recognizer.close();
+                
+                await cleanup(); // 結束後也清理，確保下次乾淨
+            }, async (err) => {
+                log("Error: " + err);
+                btn.classList.remove('active');
+                await cleanup();
             });
 
         } catch (err) {
-            log("Error: " + err.message);
-            btn.disabled = false;
-            btn.style.opacity = 1;
+            log("Fatal: " + err.message);
+            btn.classList.remove('active');
         }
     }
 
     document.getElementById('recordBtn').onpointerdown = (e) => {
         e.preventDefault();
-        start();
+        startAssessment();
     };
 </script>
 </body>
